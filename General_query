@@ -1,0 +1,2518 @@
+--Main General Template Loop - Records with Transaction Code and Related Fee Code
+--declare @filename as date
+--set @filename = convert (date, getdate(),101)
+--declare @account varchar(25)
+--set @account = '50030981'
+
+SET NOCOUNT ON
+select distinct 'H' as sortcode,
+d.[RSSI-ACCT-NO] as accountnumber,
+'' as recordtype1,
+a.[RSSI-INST], 
+a.[RSSI-ACCT-NO] as Account_Number_H,
+'' as recordtype2,
+b.[RSSI-ACCT-NO] as Account_Number_B,
+b.[RSSI-INSTITUTION-NAME],
+b.[RSSI-INST-ADRS-1],
+b.[RSSI-INST-ADRS-2],
+b.[RSSI-INST-CITY],
+b.[RSSI-INST-STATE],
+b.[RSSI-INST-ZIP],
+'' as recordtype3,
+c.[rssi-inst],
+c.[RSSI-N1MX-PLSS-ENTITY],
+c.[RSSI-ENTY-NAME],
+c.[RSSI-ENTY-ADRS-1],
+c.[RSSI-ENTY-ADRS-2],
+c.[RSSI-ENTY-CITY],
+c.[RSSI-ENTY-STATE],
+c.[RSSI-ENTY-ZIP],
+'' as  recordtype4,
+substring ( d.[rssi-run-date], 4, 1)+substring (d.[rssi-run-date], 5, 1) + '/' +substring (d.[rssi-run-date], 6, 1)+substring (d.[rssi-run-date], 7, 1)+ '/' +substring (d.[rssi-run-date], 2, 1)+substring (d.[rssi-run-date], 3, 1) AS  b3_statementdate,
+d.[RSSI-PRIMARY-NAME] as c1_borrowername,
+d.[rssi-secondary-name] as c2_secondaryname,
+d.[RSSI-MAIL-ADRS-1] as Mailing_Address_1,
+d.[RSSI-MAIL-ADRS-2] AS Mailing_Address_2,
+d.[RSSI-MAIL-CITY] as Mailing_Address_City,
+d.[RSSI-MAIL-STATE] as Mailing_Address_State,
+d.[RSSI-MAIL-ZIP] as Mailing_Address_Zip,
+/*Summary Box*/
+d.[RSSI-ACCT-NO] as d1_accountnumber,
+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 3, 1)+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 4, 1) + '/' +substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 5, 1)+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 6, 1)+ '/' +substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 1, 1)+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 2, 1) AS  D2_Payment_Due_Date,
+case when 
+
+d.[RSSI-CLS-CD] not in (1,9) then '$0.00 ' else replace (d.[RSSI-BILL-PMT-AMT],'+','') end as D3_Regular_Mortgage_Amount_Due,
+
+substring ((replace (d.[RSSI-BILL-PMT-DTE],'+','')), 3, 1)+substring ((replace (d.[RSSI-BILL-PMT-DTE],'+','')), 4, 1) + '/' +substring ((replace (d.[RSSI-BILL-PMT-DTE],'+','')), 5, 1)+substring ((replace (d.[RSSI-BILL-PMT-DTE],'+','')), 6, 1)+ '/' +substring ((replace (d.[RSSI-BILL-PMT-DTE],'+','')), 1, 1)+substring ((replace (d.[RSSI-BILL-PMT-DTE],'+','')), 2, 1) as D4_If_Payment_Received_After_Date,
+d.[RSSI-LATE-CHG-AMT] as D5_If_Payment_Received_After_Late_Fee_Amount,
+/*Account Information*/
+d.[RSSI-APPL-ADRS-1] as E1_Property_Address_1,
+d.[RSSI-APPL-ADRS-2] as E1_Property_Address_2,
+d.[RSSI-APPL-CITY] as E1_Property_Address_City,
+d.[RSSI-APPL-STATE] as E1_Property_Address_State,
+d.[RSSI-APPL-ZIP] as E1_Property_Address_Zip,
+replace (d.[RSSI-PRIN-BAL],'+','') as E2_Outstanding_Principal_Balance,
+case when [rssi-rate-chg-date] = ' 00000000' then [rssi-rate-chg-date] else substring ((replace ([RSSI-RATE-CHG-DATE],'+','')),6, 1)+substring ((replace ([RSSI-RATE-CHG-DATE],'+','')),7, 1) + '/' +substring ((replace ([RSSI-RATE-CHG-DATE],'+','')), 8, 1)+substring ((replace ([RSSI-RATE-CHG-DATE],'+','')), 9, 1)+ '/' +substring ((replace ([RSSI-RATE-CHG-DATE],'+','')), 4, 1)+substring ((replace ([RSSI-RATE-CHG-DATE],'+','')),5, 1)end as E3_Interest_Rate_Until_Date,
+case when d.[RSSI-NOTE-RATE] = '0.00001' then '0.00000%'  else replace (d.[RSSI-NOTE-RATE], '+','') end as E4_Interest_Rate,
+'PrePayment_Penalty' as 'PrePayment_Penalty',
+/*Explanation of Amount Due*/
+d.[RSSI-P-I-PYMT],
+case 
+	when ltrim(rtrim(d.[rssi-fees])) = '+00000.00' then d.[rssi-fees]
+	else '+' + substring(d.[rssi-fees], 2, 10)
+end as [rssi-fees],
+d.[rssi-late-chg-due],
+d.[RSSI-CR-INS-PYMT],
+--d.[RSSI-P-I-PYMT] - d.[RSSI-INT-DUE] as Principal,
+replace (d.[rssi-int-due],'+','') as F2_Interest,
+replace (d.[RSSI-ESC-PYMT],'+','') as F3_Escrow,
+case when 
+
+d.[RSSI-CLS-CD] not in (1,9) then '$0.00 ' else replace (d.[RSSI-BILL-PMT-AMT],'+','') end as F4_Regular_Monthly_Payment,
+--d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT] as total_fees_charged,
+case when 
+
+d.[RSSI-CLS-CD] not in (1,9) then '$0.00 ' else replace (d.[RSSI-BILL-TOTAL-DUE],'+','') end as F6_Past_Due_Payments,
+--d.[RSSI-BILL-PMT-AMT] + (d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT]) +[RSSI-BILL-TOTAL-DUE] as Total_Amount_Due,
+/*Transaction Activity*/
+case when try_convert (date, d.[RSSI-LIP-LA-DATE], 101) = '' 
+then '' else substring ( d.[RSSI-LIP-LA-DATE], 4, 1)+substring (d.[RSSI-LIP-LA-DATE], 5, 1) + '/' +substring (d.[RSSI-LIP-LA-DATE], 6, 1)+substring (d.[RSSI-LIP-LA-DATE], 7, 1)+ '/' +substring (d.[RSSI-LIP-LA-DATE], 2, 1)+substring (d.[RSSI-LIP-LA-DATE], 3, 1)
+end  as G1_Transaction_Period_Begin_Date ,
+substring ( d.[RSSI-RUN-DATE], 4, 1)+substring (d.[RSSI-RUN-DATE], 5, 1) + '/' +substring (d.[RSSI-RUN-DATE], 6, 1)+substring (d.[RSSI-RUN-DATE], 7, 1)+ '/' +substring (d.[RSSI-RUN-DATE], 2, 1)+substring (d.[RSSI-RUN-DATE], 3, 1) as G2_Transaction_Period_End_Date,
+/*Transaction Amount*/
+replace (d.[RSSI-PRIN-PD-SINCE-LST-STMT],'+','') as H1_Principal,
+replace (d.[RSSI-INT-PD-SINCE-LST-STMT],'+','') as H2_Interest,
+replace (d.[RSSI-ESC-PD-SINCE-LST-STMT],'+','') as H3_Impound_Escrow,
+replace (d.[rssi-fees-pd-since-lst-stmt], '+','') as H4_Fees,
+replace (d.[rssi-lc-pd-since-lst-stmt],'+','') as H5_Late_Charges,
+replace (d.[rssi-amt-to-uaf-since-lst-stmt],'+','') as H6_Partial_Payment_Unapplied,
+replace (d.[rssi-tot-pd-since-lst-stmt],'+','') as H7_Total,
+replace (d.[rssi-prin-paid-ytd],'+','') as H8_Principal_YTD,
+replace (d.[RSSI-INT-PD-YTD],'+','') as H9_Interest_YTD,
+replace (d.[rssi-esc-paid-ytd],'+','') as H10_Impound_Escrow_YTD,
+replace (d.[rssi-fees-paid-ytd],'+','') as H11_Fees_YTD,
+replace (d.[rssi-late-chg-paid-ytd],'+','') as H12_Late_Charges_YTD,
+g.[RSSI-UNAP-BAL-TOT] as H13_Partial_Payment_Unapplied_Total,
+--d.[rssi-prin-paid-ytd]+[RSSI-INT-PD-YTD]+[rssi-esc-paid-ytd]+[rssi-fees-paid-ytd]+[rssi-late-chg-paid-ytd]+ g.[RSSI_UNAP_BAL_TOT] as Total_YTD,
+/*Messaging*/
+substring ( d.[rssi-run-date], 4, 1)+substring (d.[rssi-run-date], 5, 1) + '/' +substring (d.[rssi-run-date], 6, 1)+substring (d.[rssi-run-date], 7, 1)+ '/' +substring (d.[rssi-run-date], 2, 1)+substring (d.[rssi-run-date], 3, 1)   as DL1_As_of_Date,
+cast(convert(numeric(18,2), d.[rssi-num-days-delq]) as varchar(50)) as DL2_Day_Delinquent,
+substring ( d.[RSSI-PMT-DUE-DATE-1], 4, 1)+substring (d.[RSSI-PMT-DUE-DATE-1], 5, 1) + '/' +substring (d.[RSSI-PMT-DUE-DATE-1], 6, 1)+substring (d.[RSSI-PMT-DUE-DATE-1], 7, 1)+ '/' +substring (d.[RSSI-PMT-DUE-DATE-1], 2, 1)+substring (d.[RSSI-PMT-DUE-DATE-1], 3, 1) as DL3_Past_Paid_Due_Date,
+
+
+substring ( d.[RSSI-PMT-PAID-DATE-1], 4, 1)+substring (d.[RSSI-PMT-PAID-DATE-1], 5, 1) + '/' +substring (d.[RSSI-PMT-PAID-DATE-1], 6, 1)+substring (d.[RSSI-PMT-PAID-DATE-1], 7, 1)+ '/' +substring (d.[RSSI-PMT-PAID-DATE-1], 2, 1)+substring (d.[RSSI-PMT-PAID-DATE-1], 3, 1) as DL4_Past_Paid_Payment_Date_1,
+
+--case when d.[RSSI-PMT-PAID-DATE-1] <> '' then 'Fully paid on d.[rssi-pmt-paid-1-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_1,
+substring ( d.[RSSI-PMT-DUE-DATE-2], 4, 1)+substring (d.[RSSI-PMT-DUE-DATE-2], 5, 1) + '/' +substring (d.[RSSI-PMT-DUE-DATE-2], 6, 1)+substring (d.[RSSI-PMT-DUE-DATE-2], 7, 1)+ '/' +substring (d.[RSSI-PMT-DUE-DATE-2], 2, 1)+substring (d.[RSSI-PMT-DUE-DATE-2], 3, 1) as DL5_Past_Paid_Payment_Due_Date_2,
+substring ( d.[RSSI-PMT-PAID-DATE-2], 4, 1)+substring (d.[RSSI-PMT-PAID-DATE-2], 5, 1) + '/' +substring (d.[RSSI-PMT-PAID-DATE-2], 6, 1)+substring (d.[RSSI-PMT-PAID-DATE-2], 7, 1)+ '/' +substring (d.[RSSI-PMT-PAID-DATE-2], 2, 1)+substring (d.[RSSI-PMT-PAID-DATE-2], 3, 1) as DL6_Past_Paid_Payment_Paid_Date_2,
+--case when d.[RSSI-PMT-PAID-DATE-2] <> '' then 'Fully paid on d.[rssi-pmt-paid-2-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_2,
+substring ( d.[RSSI-PMT-DUE-DATE-3], 4, 1)+substring (d.[RSSI-PMT-DUE-DATE-3], 5, 1) + '/' +substring (d.[RSSI-PMT-DUE-DATE-3], 6, 1)+substring (d.[RSSI-PMT-DUE-DATE-3], 7, 1)+ '/' +substring (d.[RSSI-PMT-DUE-DATE-3], 2, 1)+substring (d.[RSSI-PMT-DUE-DATE-3], 3, 1) as DL7_Past_Paid_Payment_Due_Date_3,
+substring ( d.[RSSI-PMT-PAID-DATE-3], 4, 1)+substring (d.[RSSI-PMT-PAID-DATE-3], 5, 1) + '/' +substring (d.[RSSI-PMT-PAID-DATE-3], 6, 1)+substring (d.[RSSI-PMT-PAID-DATE-3], 7, 1)+ '/' +substring (d.[RSSI-PMT-PAID-DATE-3], 2, 1)+substring (d.[RSSI-PMT-PAID-DATE-3], 3, 1) as DL8_Past_Paid_Payment_Date_3,
+--case when d.[RSSI-PMT-PAID-DATE-3] <> '' then 'Fully paid on d.[rssi-pmt-paid-3-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_3,
+substring ( d.[RSSI-PMT-DUE-DATE-4], 4, 1)+substring (d.[RSSI-PMT-DUE-DATE-4], 5, 1) + '/' +substring (d.[RSSI-PMT-DUE-DATE-4], 6, 1)+substring (d.[RSSI-PMT-DUE-DATE-4], 7, 1)+ '/' +substring (d.[RSSI-PMT-DUE-DATE-4], 2, 1)+substring (d.[RSSI-PMT-DUE-DATE-4], 3, 1) as DL9_Past_Paid_Payment_Due_Date_4,
+substring ( d.[RSSI-PMT-PAID-DATE-4], 4, 1)+substring (d.[RSSI-PMT-PAID-DATE-4], 5, 1) + '/' +substring (d.[RSSI-PMT-PAID-DATE-4], 6, 1)+substring (d.[RSSI-PMT-PAID-DATE-4], 7, 1)+ '/' +substring (d.[RSSI-PMT-PAID-DATE-4], 2, 1)+substring (d.[RSSI-PMT-PAID-DATE-4], 3, 1) as DL10_Past_Paid_Payment_Date_4,
+--case when d.[RSSI-PMT-PAID-DATE-4] <> '' then 'Fully paid on d.[rssi-pmt-paid-4-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_4,
+substring ( d.[RSSI-PMT-DUE-DATE-5], 4, 1)+substring (d.[RSSI-PMT-DUE-DATE-5], 5, 1) + '/' +substring (d.[RSSI-PMT-DUE-DATE-5], 6, 1)+substring (d.[RSSI-PMT-DUE-DATE-5], 7, 1)+ '/' +substring (d.[RSSI-PMT-DUE-DATE-5], 2, 1)+substring (d.[RSSI-PMT-DUE-DATE-5], 3, 1) as DL11_Past_Paid_Payment_Due_Date_5,
+substring ( d.[RSSI-PMT-PAID-DATE-5], 4, 1)+substring (d.[RSSI-PMT-PAID-DATE-5], 5, 1) + '/' +substring (d.[RSSI-PMT-PAID-DATE-5], 6, 1)+substring (d.[RSSI-PMT-PAID-DATE-5], 7, 1)+ '/' +substring (d.[RSSI-PMT-PAID-DATE-5], 2, 1)+substring (d.[RSSI-PMT-PAID-DATE-5], 3, 1) as DL12_Past_Paid_Payment_Date_5,
+--case when d.[RSSI-PMT-PAID-DATE-5] <> '' then 'Fully paid on d.[rssi-pmt-paid-5-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_5,
+substring ( d.[RSSI-PMT-DUE-DATE-6], 4, 1)+substring (d.[RSSI-PMT-DUE-DATE-6], 5, 1) + '/' +substring (d.[RSSI-PMT-DUE-DATE-6], 6, 1)+substring (d.[RSSI-PMT-DUE-DATE-6], 7, 1)+ '/' +substring (d.[RSSI-PMT-DUE-DATE-6], 2, 1)+substring (d.[RSSI-PMT-DUE-DATE-6], 3, 1) as DL13_Past_Paid_Payment_Due_Date_6,
+substring ( d.[RSSI-PMT-PAID-DATE-6], 4, 1)+substring (d.[RSSI-PMT-PAID-DATE-6], 5, 1) + '/' +substring (d.[RSSI-PMT-PAID-DATE-6], 6, 1)+substring (d.[RSSI-PMT-PAID-DATE-6], 7, 1)+ '/' +substring (d.[RSSI-PMT-PAID-DATE-6], 2, 1)+substring (d.[RSSI-PMT-PAID-DATE-6], 3, 1) as DL14_Past_Paid_Payment_Date_6,
+--case when d.[RSSI-PMT-PAID-DATE-6] <> '' then 'Fully paid on d.[rssi-pmt-paid-6-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_6,
+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 3, 1)+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 4, 1) + '/' +substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 5, 1)+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 6, 1)+ '/' +substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 1, 1)+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 2, 1) as DL15_Current_Payment_Due_Date,
+case when d.[RSSI-CLS-CD] not in (1,9) then '$0.00 ' else replace (d.[RSSI-BILL-PMT-AMT],'+','') end as DL16_Current_Payment_Amount_Due,
+--d.[RSSI-BILL-PMT-AMT] + (d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT]) + d.[RSSI-BILL-TOTAL-DUE] as Total_Amount_To_Bring_Current,
+d.[RSSI-ACCT-NO]  as K4_Account_Number,
+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 3, 1)+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 4, 1) + '/' +substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 5, 1)+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 6, 1)+ '/' +substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 1, 1)+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 2, 1) as K5_Payment_Due_Date,
+case when d.[RSSI-CLS-CD] not in (1,9) then '$0.00 ' else replace (d.[RSSI-BILL-PMT-AMT],'+','') end  as K6_Regular_Mortgage_Amount_Due,
+replace (d.[RSSI-LATE-CHG-AMT],'+','') as K7_Late_Fee_Amount,
+substring ((replace (d.[rssi-bill-pmt-dte],'+','')), 3, 1)+substring ((replace (d.[rssi-bill-pmt-dte],'+','')), 4, 1) + '/' +substring ((replace (d.[rssi-bill-pmt-dte],'+','')), 5, 1)+substring ((replace (d.[rssi-bill-pmt-dte],'+','')), 6, 1)+ '/' +substring ((replace (d.[rssi-bill-pmt-dte],'+','')), 1, 1)+substring ((replace (d.[rssi-bill-pmt-dte],'+','')), 2, 1) as K8_Late_Fee_Date,
+substring (d.[RSSI-NEXT-DRAFT-DT],1,6) as K9_ACH_Draft_Date,
+'' as [rssi-rcd-id],
+'' as [rssi-b-chap],
+cast(convert(numeric(18,2), d.[rssi-num-days-delq]) as varchar(50)) as DL2_Day_Delinquent,
+g.[RSSI-LMT-PROGRAM],
+'' as lmtprogramdescription,
+d.[RSSI-EMAIL-BILL-IND],
+try_convert(date, substring(k.[RSSI-LCI-FREEZE-TO-DT], 2, 6), 101) as [rssi-lci-freeze-to-dt], --use for conditional on showing suspend late fee language
+try_convert(date, substring(k.[rssi-lci-freeze-from-dt], 2, 6), 101) as [rssi-lci-freeze-from-dt],
+'' as [RSSI-RCD-ID],
+'' as trfeecode,
+'' as transactioncode,
+'' as g3_transaction_date,
+'' as [RSSI-TR-AMT],
+'' as [rssi-tr-amt-to-prin],
+'' as [rssi-tr-amt-to-int],
+'' as [rssi-tr-amt-to-esc],
+'' as [rssi-tr-amt-to-lc],
+'' as [rssi-tr-amt-to-pvar],
+'' as [rssi-tr-amt-to-ivar],
+'' as [rssi-tr-amt-to-evar],
+'' as [rssi-tr-amt-to-lvar],
+'' as [RSSI-TR-FEE-DESC],
+'' as [chargedescription],
+'' as [paymentdescription],
+'' as [RSSI-RCD-ID],
+'' as [RSSI-FD-ASSESS-AMT],
+'' as [RSSI-FD-FEE-DESC],
+'' as g3_fee_assess_date,
+'' as g3_fee_coll_date,
+u.[RSSI-USR-51] as agency,
+case when u.[rssi-usr-50] = '' then '' else substring(u.[rssi-usr-50], 1,3) + '-' + substring(u.[rssi-usr-50], 4,3) + '-' + substring(u.[rssi-usr-50], 7, 4) end as phonenumber,
+case when u.[rssi-usr-46] = '' then '' else '#' + ltrim(u.[rssi-usr-46]) end as nmlsnumber,
+case when d.[rssi-usr-36] = 'N' then '' else d.[rssi-usr-36] end as achindicator,
+--NEW Due Date Logic as of 2/19/2019 - If RSSI-DUE-DATE > RSSI-CUR-DUE-DTE Set Amount Due to $0.00
+substring (replace (d.[rssi-due-date], ' ', ''), 5, 1)+substring ( replace (d.[rssi-due-date], ' ', ''), 6, 1) + '/' +substring ( replace (d.[rssi-due-date], ' ', ''), 3, 1)+substring ( replace (d.[rssi-due-date], ' ', ''), 4, 1)+ '/' +substring ( replace (d.[rssi-due-date], ' ', ''), 1, 1)+substring ( replace (d.[rssi-due-date], ' ', ''), 2, 1) as rssiduedatecheck,
+substring (replace (d.[RSSI-CUR-DUE-DTE], '+', ''), 5, 1)+substring ( replace (d.[RSSI-CUR-DUE-DTE], '+', ''), 6, 1) + '/' +substring ( replace (d.[RSSI-CUR-DUE-DTE], '+', ''), 3, 1)+substring ( replace (d.[RSSI-CUR-DUE-DTE], '+', ''), 4, 1)+ '/' +substring ( replace (d.[RSSI-CUR-DUE-DTE], '+', ''), 1, 1)+substring ( replace (d.[RSSI-CUR-DUE-DTE], '+', ''), 2, 1) as rssicurduedatecheck,
+case
+	when try_convert(date, (replace (d.[rssi-due-date], ' ', '')), 101) > try_convert (date, (replace (d.[RSSI-CUR-DUE-DTE],'+','')),101) then '$0.00'
+	when d.[RSSI-CLS-CD] not in (1,9) then '$0.00 ' 
+	else d.[RSSI-BILL-PMT-AMT]
+end as newamountdue,
+case
+	when try_convert(date, (replace (d.[rssi-due-date], ' ', '')), 101) > try_convert (date, (replace (d.[RSSI-CUR-DUE-DTE],'+','')),101) then '$0.00'
+	else d.[rssi-p-i-pymt]
+end as newrssipipymt,
+case
+	when try_convert(date, (replace (d.[rssi-due-date], ' ', '')), 101) > try_convert (date, (replace (d.[RSSI-CUR-DUE-DTE],'+','')),101) then '$0.00'
+	else d.[rssi-int-due]
+end as newrssiintdue,
+case
+	when try_convert(date, (replace (d.[rssi-due-date], ' ', '')), 101) > try_convert (date, (replace (d.[RSSI-CUR-DUE-DTE],'+','')),101) then '$0.00'
+	else d.[RSSI-ESC-PYMT]
+end as newrssiescpymt,
+case
+	when try_convert(date, (replace (d.[rssi-due-date], ' ', '')), 101) > try_convert (date, (replace (d.[RSSI-CUR-DUE-DTE],'+','')),101) then '$0.00'
+	when d.[RSSI-CLS-CD] not in (1,9) then '$0.00 ' 
+	else d.[RSSI-BILL-PMT-AMT]
+end as newrssibillpmtamt,
+case
+	when try_convert(date, (replace (d.[rssi-due-date], ' ', '')), 101) > try_convert (date, (replace (d.[RSSI-CUR-DUE-DTE],'+','')),101) then '$0.00'
+	else case when ltrim(rtrim(d.[rssi-fees])) = '+00000.00' then d.[rssi-fees] else '+' + substring(d.[rssi-fees], 2, 10) end 
+end as newrssifees,
+case
+	when try_convert(date, (replace (d.[rssi-due-date], ' ', '')), 101) > try_convert (date, (replace (d.[RSSI-CUR-DUE-DTE],'+','')),101) then '$0.00'
+	else d.[RSSI-LATE-CHG-DUE]
+end as newrssilatechgdue,
+case
+	when try_convert(date, (replace (d.[rssi-due-date], ' ', '')), 101) > try_convert (date, (replace (d.[RSSI-CUR-DUE-DTE],'+','')),101) then '$0.00'
+	else d.[RSSI-CR-INS-PYMT]
+end as newrssicrinspymnt,
+case
+	when try_convert(date, (replace (d.[rssi-due-date], ' ', '')), 101) > try_convert (date, (replace (d.[RSSI-CUR-DUE-DTE],'+','')),101) then '$0.00'
+	else d.[RSSI-BILL-TOTAL-DUE]
+end as newrssibilltotaldue,
+substring (replace (d.[RSSI-RATE-CHG-DATE], ' 01', ''), 3, 1)+substring ( replace (d.[RSSI-RATE-CHG-DATE], ' 01', ''), 4, 1) + '/' +substring ( replace (d.[RSSI-RATE-CHG-DATE], ' 01', ''), 5, 1)+substring ( replace (d.[RSSI-RATE-CHG-DATE], ' 01', ''), 6, 1)+ '/' +substring ( replace (d.[RSSI-RATE-CHG-DATE], ' 01', ''), 1, 1)+substring ( replace (d.[RSSI-RATE-CHG-DATE], ' 01', ''), 2, 1) as newintratechange,
+substring ( d.[RSSI-MAT-DATE], 6, 1)+substring (d.[RSSI-MAT-DATE], 7, 1) + '/' +substring (d.[RSSI-MAT-DATE], 8, 1)+substring (d.[RSSI-MAT-DATE], 9, 1)+ '/' +substring (d.[RSSI-MAT-DATE], 4, 1)+substring (d.[RSSI-MAT-DATE], 5, 1) as rssimatdate,
+case
+	when d.[RSSI-RATE-CHG-DATE] = ' 00000000' then substring ( d.[RSSI-MAT-DATE], 6, 1)+substring (d.[RSSI-MAT-DATE], 7, 1) + '/' +substring (d.[RSSI-MAT-DATE], 8, 1)+substring (d.[RSSI-MAT-DATE], 9, 1)+ '/' +substring (d.[RSSI-MAT-DATE], 4, 1)+substring (d.[RSSI-MAT-DATE], 5, 1) else  substring ((replace ([RSSI-RATE-CHG-DATE],'+','')),6, 1)+substring ((replace ([RSSI-RATE-CHG-DATE],'+','')),7, 1) + '/' +substring ((replace ([RSSI-RATE-CHG-DATE],'+','')), 8, 1)+substring ((replace ([RSSI-RATE-CHG-DATE],'+','')), 9, 1)+ '/' +substring ((replace ([RSSI-RATE-CHG-DATE],'+','')), 4, 1)+substring ((replace ([RSSI-RATE-CHG-DATE],'+','')),5, 1) end as interestrateuntildate,
+d.[rssi-pymts-due-amt] as NEW_F6_Past_Due_Payments,
+i.[rssi-cb-cbwr1-typ] as coborrowerrec,
+i.[RSSI-CSII-CBWR1-VERIFIED] as coborrowerverified,
+i.[rssi-cb-cbwr1-bill-stmnt] as coborrowerbillstmnt,
+i.[rssi-cb-cbwr1-f] as coborrowername,
+i.[rssi-cb-cbwr1-adrs1] as coborroweraddr1,
+i.[rssi-cb-cbwr1-adrs2] as coborroweraddr2,
+i.[rssi-cb-cbwr1-city] as coborrowercity,
+i.[rssi-cb-cbwr1-state] as coborrowerstate,
+i.[rssi-cb-cbwr1-zip] as coborrowerzip,
+datediff(dd, try_convert (date, d.[rssi-run-date], 112), try_convert(date, d.[RSSI-MAT-DATE], 101)) as maturitydateyears,
+case
+	when try_convert (date, d.[rssi-run-date], 112) between try_convert(date, substring(k.[rssi-lci-freeze-from-dt], 2, 6), 101) and try_convert(date, substring(k.[RSSI-LCI-FREEZE-TO-DT], 2, 6), 101) then 'Y'
+	else 'N'
+end as suspendlatefeelanguage,
+g.[RSSI-UNCOLL-ESC-SHORT],
+substring ( d.[RSSI-AUDIT-DATE], 6, 1)+substring (d.[RSSI-AUDIT-DATE], 7, 1) + '/' +substring (d.[RSSI-AUDIT-DATE], 8, 1)+substring (d.[RSSI-AUDIT-DATE], 9, 1)+ '/' +substring (d.[RSSI-AUDIT-DATE], 4, 1)+substring (d.[RSSI-AUDIT-DATE], 5, 1) as [RSSI-AUDIT-DATE],
+case when [RSSI-LIP-LA-DATE] = ' 000000' then 'Y' else 'N' end as tax_insert,
+case when d.[RSSI-EMAIL-BILL-IND] = 'Y' and d.[rssi-usr-36] = 'Y' and substring(d.[rssi-run-date],4,2)  in ('02','04','06','08','10','12') then 'V3'
+when d.[RSSI-EMAIL-BILL-IND] = 'Y' and d.[rssi-usr-36] = 'Y' and substring(d.[rssi-run-date],4,2)  in ('01','03','05','07','09','11') then 'V2'
+when d.[RSSI-EMAIL-BILL-IND] = 'Y' and d.[rssi-usr-36] = 'N' or d.[RSSI-EMAIL-BILL-IND] = 'Y' and d.[rssi-usr-36] = '' then 'V1'
+else 'V4' end as onsertindicator,
+'' as 'SEQ-NO'
+
+from  Gateway_Header_Records a
+	join Gateway_B_Records b on b.[RSSI-INST] = a.[RSSI-INST] --and b.[FileName] = @filename
+	join Gateway_P_Records c on c.[RSSI-INST] = a.[RSSI-INST] --and c.[FileName] = @filename
+	join Gateway_A_records d on d.[RSSI-INST] = a.[RSSI-INST]  --and d.[FileName] = @filename
+	join gateway_Z_Records z on z.[RSSI-INST] = a.[RSSI-INST] --and z.[FileName] = @filename
+	left join gateway_t_records e on e.[RSSI-INST] = a.[RSSI-INST] and e.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] /*and e.[FileName] = @filename*/ and e.[rssi-log-tran] in ('5605', '5705', '5706', '5707')
+	--join gateway_f_records f on f.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] and f.[RSSI-FD-FEE-TYPE] = e.[RSSI-TR-FEE-CODE] --and f.[RSSI-SEQ-NO] = e.[RSSI-SEQ-NO]
+	--join Mortgage_TandF_Reference x on ltrim(rtrim(x.[rssi-log-tthran])) = ltrim(rtrim(e.[RSSI-LOG-TRAN])) and ltrim(rtrim(x.[rssi-tr-fee-code])) = ltrim(rtrim(e.[RSSI-TR-FEE-CODE]))
+	left join Gateway_2_records g on g.[RSSI-INST] = a.[RSSI-INST] and g.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and g.[FileName] = @filename
+	left join Gateway_J_Records j on j.[rssi-inst] = a.[rssi-inst] and j.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and j.[FileName] = @filename 
+	left join gateway_x_records k on k.[rssi-inst] = a.[rssi-inst] and k.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and k.[FileName] = @filename
+	left join gateway_u_records u on u.[RSSI-INST] = a.[RSSI-INST] and u.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and u.[FileName] = @filename
+	left join gateway_i_records i on i.[RSSI-INST] = a.[RSSI-INST] and i.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] and ltrim(rtrim(i.[rssi-cb-cbwr1-bill-stmnt])) <> 'O' --and i.[FileName] = @filename
+
+where /*and g.[FileName] = @filename*/ convert(numeric(18,0), d.[RSSI-NUM-DAYS-DELQ]) <= 45 and j.[RSSI-RCD-ID] is null and d.[RSSI-LOSS-MIT-IND] <>'A'  --AND d.[RSSI-EMAIL-BILL-IND] <> 'Y'  and d.[rssi-acct-no] like '%' + @account + '%'
+
+union
+
+select distinct 'T' as sortcode,
+d.[RSSI-ACCT-NO] as accountnumber,
+'' as recordtype1,
+'' as [RSSI-INST], 
+'' as  Account_Number_H,
+'' as recordtype2,
+'' as Account_Number_B,
+'' as [RSSI-INSTITUTION-NAME],
+'' as [RSSI-INST-ADRS-1],
+'' as [RSSI-INST-ADRS-2],
+'' as [RSSI-INST-CITY],
+'' as [RSSI-INST-STATE],
+'' as [RSSI-INST-ZIP],
+'' as recordtype3,
+'' as [rssi-inst],
+'' as [RSSI-N1MX-PLSS-ENTITY],
+'' as [RSSI-ENTY-NAME],
+'' as [RSSI-ENTY-ADRS-1],
+'' as [RSSI-ENTY-ADRS-2],
+'' as [RSSI-ENTY-CITY],
+'' as [RSSI-ENTY-STATE],
+'' as [RSSI-ENTY-ZIP],
+'' as recordtype4,
+'' as b3_statementdate,
+'' as c1_borrowername,
+'' as c2_secondaryname,
+'' as Mailing_Address_1,
+'' as Mailing_Address_2,
+'' as Mailing_Address_City,
+'' as Mailing_Address_State,
+'' as Mailing_Address_Zip,
+/*Summary Box*/
+'' as d1_accountnumber,
+'' as D2_Payment_Due_Date,
+'' as D3_Regular_Mortgage_Amount_Due,
+'' as D4_If_Payment_Received_After_Date,
+'' as D5_If_Payment_Received_After_Late_Fee_Amount,
+/*Account Information*/
+'' as E1_Property_Address_1,
+'' as E1_Property_Address_2,
+'' as E1_Property_Address_City,
+'' as E1_Property_Address_State,
+'' as E1_Property_Address_Zip,
+'' as E2_Outstanding_Principal_Balance,
+'' as E3_Interest_Rate_Until_Date,
+'' as E4_Interest_Rate,
+'' as 'PrePayment_Penalty',
+/*Explanation of Amount Due*/
+'' as [RSSI-P-I-PYMT],
+'' as [rssi-fees],
+'' as [rssi-late-chg-due],
+'' as [RSSI-CR-INS-PYMT],
+--d.[RSSI-P-I-PYMT] - d.[RSSI-INT-DUE] as Principal,
+'' as F2_Interest,
+'' as F3_Escrow,
+'' as F4_Regular_Monthly_Payment,
+--d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT] as total_fees_charged,
+'' as F6_Past_Due_Payments,
+--d.[RSSI-BILL-PMT-AMT] + (d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT]) +[RSSI-BILL-TOTAL-DUE] as Total_Amount_Due,
+/*Transaction Activity*/
+'' as G1_Transaction_Period_Begin_Date,
+'' as G2_Transaction_Period_End_Date,
+/*Transaction Amount*/
+'' as H1_Principal,
+'' as H2_Interest,
+'' as H3_Impound_Escrow,
+'' as H4_Fees,
+'' as H5_Late_Charges,
+'' as H6_Partial_Payment_Unapplied,
+'' as H7_Total,
+'' as H8_Principal_YTD,
+'' as H9_Interest_YTD,
+'' as H10_Impound_Escrow_YTD,
+'' as H11_Fees_YTD,
+'' as H12_Late_Charges_YTD,
+'' as H13_Partial_Payment_Unapplied_Total,
+--'' as --d.[rssi-prin-paid-ytd]+[RSSI-INT-PD-YTD]+[rssi-esc-paid-ytd]+[rssi-fees-paid-ytd]+[rssi-late-chg-paid-ytd]+ g.[RSSI_UNAP_BAL_TOT] as Total_YTD,
+/*Messaging*/
+'' as DL1_As_of_Date,
+'' as DL2_Day_Delinquent,
+'' as DL3_Past_Paid_Due_Date,
+'' as DL4_Past_Paid_Payment_Date_1,
+--case when d.[RSSI-PMT-PAID-DATE-1] <> '' then 'Fully paid on d.[rssi-pmt-paid-1-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_1,
+'' as DL5_Past_Paid_Payment_Due_Date_2,
+'' as DL6_Past_Paid_Payment_Paid_Date_2,
+--case when d.[RSSI-PMT-PAID-DATE-2] <> '' then 'Fully paid on d.[rssi-pmt-paid-2-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_2,
+'' as DL7_Past_Paid_Payment_Due_Date_3,
+'' as DL8_Past_Paid_Payment_Date_3,
+--case when d.[RSSI-PMT-PAID-DATE-3] <> '' then 'Fully paid on d.[rssi-pmt-paid-3-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_3,
+'' as DL9_Past_Paid_Payment_Due_Date_4,
+'' as DL10_Past_Paid_Payment_Date_4,
+--case when d.[RSSI-PMT-PAID-DATE-4] <> '' then 'Fully paid on d.[rssi-pmt-paid-4-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_4,
+'' as DL11_Past_Paid_Payment_Due_Date_5,
+'' as DL12_Past_Paid_Payment_Date_5,
+--case when d.[RSSI-PMT-PAID-DATE-5] <> '' then 'Fully paid on d.[rssi-pmt-paid-5-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_5,
+'' as DL13_Past_Paid_Payment_Due_Date_6,
+'' as DL14_Past_Paid_Payment_Date_6,
+--case when d.[RSSI-PMT-PAID-DATE-6] <> '' then 'Fully paid on d.[rssi-pmt-paid-6-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_6,
+'' as DL15_Current_Payment_Due_Date,
+'' as DL16_Current_Payment_Amount_Due,
+--d.[RSSI-BILL-PMT-AMT] + (d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT]) + d.[RSSI-BILL-TOTAL-DUE] as Total_Amount_To_Bring_Current,
+'' as K4_Account_Number,
+'' as K5_Payment_Due_Date,
+'' as K6_Regular_Mortgage_Amount_Due,
+'' as K7_Late_Fee_Amount,
+'' as K8_Late_Fee_Date,
+'' as K9_ACH_Draft_Date,
+'' as [rssi-rcd-id],
+'' as [rssi-b-chap],
+'' as [RSSI-NUM-DAYS-DELQ],
+'' as [RSSI-LMT-PROGRAM],
+'' as  lmtprogramdescription,
+'' as [RSSI-EMAIL-BILL-IND],
+'' as [RSSI-LCI-FREEZE-TO-DT], --use for conditional on showing suspend late fee language
+'' as [rssi-lci-freeze-from-dt],
+'' as [RSSI-RCD-ID],
+e.[rssi-tr-fee-code] as trfeecode,
+e.[rssi-log-tran] as transactioncode,
+substring ((replace (e.[rssi-tr-date],'+','')), 4, 1)+substring ((replace (e.[rssi-tr-date],'+','')), 5, 1) + '/' +substring ((replace (e.[rssi-tr-date],'+','')), 6, 1)+substring ((replace (e.[rssi-tr-date],'+','')), 7, 1)+ '/' +substring ((replace (e.[rssi-tr-date],'+','')), 2, 1)+substring ((replace (e.[rssi-tr-date],'+','')), 3, 1) as g3_transaction_date,
+e.[RSSI-TR-AMT],
+e.[rssi-tr-amt-to-prin],
+e.[rssi-tr-amt-to-int],
+e.[rssi-tr-amt-to-esc],
+e.[rssi-tr-amt-to-lc],
+e.[rssi-tr-amt-to-pvar],
+e.[rssi-tr-amt-to-ivar],
+e.[rssi-tr-amt-to-evar],
+e.[rssi-tr-amt-to-lvar],
+e.[RSSI-TR-FEE-DESC],
+(select distinct x.[chargedescription]
+	from Mortgage_TandF_Reference x
+		where ltrim(rtrim(x.[rssi-log-tran])) = ltrim(rtrim(e.[rssi-log-tran])) and ltrim(rtrim(x.[rssi-tr-fee-code])) = ltrim(rtrim(e.[RSSI-TR-FEE-CODE]))) as chargedescription,
+(select distinct x.PaymentDescription
+	from Mortgage_TandF_Reference x
+		where ltrim(rtrim(x.[rssi-log-tran])) = ltrim(rtrim(e.[rssi-log-tran])) and ltrim(rtrim(x.[rssi-tr-fee-code])) = ltrim(rtrim(e.[RSSI-TR-FEE-CODE]))) as paymentdescription,
+'' as [RSSI-RCD-ID],
+'' as [RSSI-FD-ASSESS-AMT],
+'' as [RSSI-FD-FEE-DESC],
+'' as g3_fee_assess_date,
+'' as g3_fee_coll_date,
+'' as agency,
+'' as phonenumber,
+'' as nmlsnumber,
+'' as achindicator,
+--NEW Due Date Logic as of 2/19/2019 - If RSSI-DUE-DATE > RSSI-CUR-DUE-DTE Set Amount Due to $0.00
+'' as rssiduedatecheck,
+'' as rssicurduedatecheck,
+'' as newamountdue,
+'' as newrssipipymt,
+'' as newrssiintdue,
+'' as newrssiescpymt,
+'' as newrssibillpmtamt,
+'' as newrssifees,
+'' as newrssilatechgdue,
+'' as newrssicrinspymnt,
+'' as newrssibilltotaldue,
+'' as newintratechange,
+'' as rssimatdate,
+'' as interestrateuntildate,
+'' as NEW_F6_Past_Due_Payments,
+'' as coborrowerrec,
+'' as coborrowerverified,
+'' as coborrowerbillstmnt,
+'' as coborrowername,
+'' as coborroweraddr1,
+'' as coborroweraddr2,
+'' as coborrowercity,
+'' as coborrowerstate,
+'' as coborrowerzip,
+'' as maturitydateyears,
+'' as suspendlatefeelanguage,
+'' as [RSSI-UNCOLL-ESC-SHORT],
+'' as [RSSI-AUDIT-DATE],
+'' as tax_insert,
+'' as onsertindicator,
+e.[RSSI-SEQ-NO]
+
+from  Gateway_Header_Records a
+	join Gateway_B_Records b on b.[RSSI-INST] = a.[RSSI-INST] --and b.[FileName] = @filename
+	join Gateway_P_Records c on c.[RSSI-INST] = a.[RSSI-INST] --and c.[FileName] = @filename
+	join Gateway_A_records d on d.[RSSI-INST] = a.[RSSI-INST] --and d.[FileName] = @filename
+	join gateway_Z_Records z on z.[RSSI-INST] = a.[RSSI-INST] --and z.[FileName] = @filename
+	left join gateway_t_records e on e.[RSSI-INST] = a.[RSSI-INST] and e.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] /*and e.[FileName] = @filename*/ and e.[rssi-log-tran] in ('5605', '5705', '5706', '5707') AND e.[RSSI-LOG-PTRN] NOT IN ('PFSP1069','PFSP1169','PFSP1269','PFSP1369','PFSP4540','PFSP4549','PFSP524','PFSP539','PFSP578','PFSP478X')
+	--join gateway_f_records f on f.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] and f.[RSSI-FD-FEE-TYPE] = e.[RSSI-TR-FEE-CODE] --and f.[RSSI-SEQ-NO] = e.[RSSI-SEQ-NO]
+	join Mortgage_TandF_Reference x on ltrim(rtrim(x.[rssi-log-tran])) = ltrim(rtrim(e.[RSSI-LOG-TRAN])) and ltrim(rtrim(x.[rssi-tr-fee-code])) = ltrim(rtrim(e.[RSSI-TR-FEE-CODE]))
+	left join Gateway_2_records g on g.[RSSI-INST] = a.[RSSI-INST] and g.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and g.[FileName] = @filename
+	left join Gateway_J_Records j on j.[rssi-inst] = a.[rssi-inst] and j.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and j.[FileName] = @filename 
+	left join gateway_x_records k on k.[rssi-inst] = a.[rssi-inst] and k.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and k.[FileName] = @filename
+	left join gateway_u_records u on u.[RSSI-INST] = a.[RSSI-INST] and u.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and u.[FileName] = @filename
+	left join gateway_i_records i on i.[RSSI-INST] = a.[RSSI-INST] and i.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] and ltrim(rtrim(i.[rssi-cb-cbwr1-bill-stmnt])) <> 'O' --and i.[FileName] = @filename
+
+where /*and g.[FileName] = @filename*/ convert(numeric(18,0), d.[RSSI-NUM-DAYS-DELQ]) <= 45 and j.[RSSI-RCD-ID] is null  and d.[RSSI-LOSS-MIT-IND] <>'A' --AND d.[RSSI-EMAIL-BILL-IND] <> 'Y'  and d.[rssi-acct-no] like '%' + @account + '%'
+
+
+union
+
+select distinct 'T' as sortcode,
+d.[RSSI-ACCT-NO] as accountnumber,
+'' as recordtype1,
+'' as [RSSI-INST], 
+'' as  Account_Number_H,
+'' as recordtype2,
+'' as Account_Number_B,
+'' as [RSSI-INSTITUTION-NAME],
+'' as [RSSI-INST-ADRS-1],
+'' as [RSSI-INST-ADRS-2],
+'' as [RSSI-INST-CITY],
+'' as [RSSI-INST-STATE],
+'' as [RSSI-INST-ZIP],
+'' as recordtype3,
+'' as [rssi-inst],
+'' as [RSSI-N1MX-PLSS-ENTITY],
+'' as [RSSI-ENTY-NAME],
+'' as [RSSI-ENTY-ADRS-1],
+'' as [RSSI-ENTY-ADRS-2],
+'' as [RSSI-ENTY-CITY],
+'' as [RSSI-ENTY-STATE],
+'' as [RSSI-ENTY-ZIP],
+'' as recordtype4,
+'' as b3_statementdate,
+'' as c1_borrowername,
+'' as c2_secondaryname,
+'' as Mailing_Address_1,
+'' as Mailing_Address_2,
+'' as Mailing_Address_City,
+'' as Mailing_Address_State,
+'' as Mailing_Address_Zip,
+/*Summary Box*/
+'' as d1_accountnumber,
+'' as D2_Payment_Due_Date,
+'' as D3_Regular_Mortgage_Amount_Due,
+'' as D4_If_Payment_Received_After_Date,
+'' as D5_If_Payment_Received_After_Late_Fee_Amount,
+/*Account Information*/
+'' as E1_Property_Address_1,
+'' as E1_Property_Address_2,
+'' as E1_Property_Address_City,
+'' as E1_Property_Address_State,
+'' as E1_Property_Address_Zip,
+'' as E2_Outstanding_Principal_Balance,
+'' as E3_Interest_Rate_Until_Date,
+'' as E4_Interest_Rate,
+'' as 'PrePayment_Penalty',
+/*Explanation of Amount Due*/
+'' as [RSSI-P-I-PYMT],
+'' as [rssi-fees],
+'' as [rssi-late-chg-due],
+'' as [RSSI-CR-INS-PYMT],
+--d.[RSSI-P-I-PYMT] - d.[RSSI-INT-DUE] as Principal,
+'' as F2_Interest,
+'' as F3_Escrow,
+'' as F4_Regular_Monthly_Payment,
+--d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT] as total_fees_charged,
+'' as F6_Past_Due_Payments,
+--d.[RSSI-BILL-PMT-AMT] + (d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT]) +[RSSI-BILL-TOTAL-DUE] as Total_Amount_Due,
+/*Transaction Activity*/
+'' as G1_Transaction_Period_Begin_Date,
+'' as G2_Transaction_Period_End_Date,
+/*Transaction Amount*/
+'' as H1_Principal,
+'' as H2_Interest,
+'' as H3_Impound_Escrow,
+'' as H4_Fees,
+'' as H5_Late_Charges,
+'' as H6_Partial_Payment_Unapplied,
+'' as H7_Total,
+'' as H8_Principal_YTD,
+'' as H9_Interest_YTD,
+'' as H10_Impound_Escrow_YTD,
+'' as H11_Fees_YTD,
+'' as H12_Late_Charges_YTD,
+'' as H13_Partial_Payment_Unapplied_Total,
+--'' as --d.[rssi-prin-paid-ytd]+[RSSI-INT-PD-YTD]+[rssi-esc-paid-ytd]+[rssi-fees-paid-ytd]+[rssi-late-chg-paid-ytd]+ g.[RSSI_UNAP_BAL_TOT] as Total_YTD,
+/*Messaging*/
+'' as DL1_As_of_Date,
+'' as DL2_Day_Delinquent,
+'' as DL3_Past_Paid_Due_Date,
+'' as DL4_Past_Paid_Payment_Date_1,
+--case when d.[RSSI-PMT-PAID-DATE-1] <> '' then 'Fully paid on d.[rssi-pmt-paid-1-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_1,
+'' as DL5_Past_Paid_Payment_Due_Date_2,
+'' as DL6_Past_Paid_Payment_Paid_Date_2,
+--case when d.[RSSI-PMT-PAID-DATE-2] <> '' then 'Fully paid on d.[rssi-pmt-paid-2-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_2,
+'' as DL7_Past_Paid_Payment_Due_Date_3,
+'' as DL8_Past_Paid_Payment_Date_3,
+--case when d.[RSSI-PMT-PAID-DATE-3] <> '' then 'Fully paid on d.[rssi-pmt-paid-3-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_3,
+'' as DL9_Past_Paid_Payment_Due_Date_4,
+'' as DL10_Past_Paid_Payment_Date_4,
+--case when d.[RSSI-PMT-PAID-DATE-4] <> '' then 'Fully paid on d.[rssi-pmt-paid-4-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_4,
+'' as DL11_Past_Paid_Payment_Due_Date_5,
+'' as DL12_Past_Paid_Payment_Date_5,
+--case when d.[RSSI-PMT-PAID-DATE-5] <> '' then 'Fully paid on d.[rssi-pmt-paid-5-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_5,
+'' as DL13_Past_Paid_Payment_Due_Date_6,
+'' as DL14_Past_Paid_Payment_Date_6,
+--case when d.[RSSI-PMT-PAID-DATE-6] <> '' then 'Fully paid on d.[rssi-pmt-paid-6-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_6,
+'' as DL15_Current_Payment_Due_Date,
+'' as DL16_Current_Payment_Amount_Due,
+--d.[RSSI-BILL-PMT-AMT] + (d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT]) + d.[RSSI-BILL-TOTAL-DUE] as Total_Amount_To_Bring_Current,
+'' as K4_Account_Number,
+'' as K5_Payment_Due_Date,
+'' as K6_Regular_Mortgage_Amount_Due,
+'' as K7_Late_Fee_Amount,
+'' as K8_Late_Fee_Date,
+'' as K9_ACH_Draft_Date,
+'' as [rssi-rcd-id],
+'' as [rssi-b-chap],
+'' as [RSSI-NUM-DAYS-DELQ],
+'' as [RSSI-LMT-PROGRAM],
+'' as  lmtprogramdescription,
+'' as [RSSI-EMAIL-BILL-IND],
+'' as [RSSI-LCI-FREEZE-TO-DT], --use for conditional on showing suspend late fee language
+'' as [rssi-lci-freeze-from-dt],
+'' as [RSSI-RCD-ID],
+'' as trfeecode,
+'' as transactioncode,
+substring ((replace (f.[RSSI-FD-ASSESS-DATE],'+','')), 5, 1)+substring ((replace (f.[RSSI-FD-ASSESS-DATE],'+','')), 6, 1) + '/' +substring ((replace (f.[RSSI-FD-ASSESS-DATE],'+','')), 7, 1)+substring ((replace (f.[RSSI-FD-ASSESS-DATE],'+','')), 8, 1)+ '/' +substring ((replace (f.[RSSI-FD-ASSESS-DATE],'+','')), 3, 1)+substring ((replace (f.[RSSI-FD-ASSESS-DATE],'+','')), 4, 1) as g3_transaction_date,
+f.[rssi-fd-assess-amt] as [RSSI-TR-AMT],
+'' as [rssi-tr-amt-to-prin],
+'' as [rssi-tr-amt-to-int],
+'' as [rssi-tr-amt-to-esc],
+'' as [rssi-tr-amt-to-lc],
+'' as [rssi-tr-amt-to-pvar],
+'' as [rssi-tr-amt-to-ivar],
+'' as [rssi-tr-amt-to-evar],
+'' as [rssi-tr-amt-to-lvar],
+'' as [RSSI-TR-FEE-DESC],
+case when f.[rssi-fd-fee-desc] = 'ACCRUED LATE CHARGE' then 'Accrued Late Charge' end as chargedescription,
+'' as paymentdescription,
+'' as [RSSI-RCD-ID],
+'' as [RSSI-FD-ASSESS-AMT],
+'' as [RSSI-FD-FEE-DESC],
+'' as g3_fee_assess_date,
+'' as g3_fee_coll_date,
+'' as agency,
+'' as phonenumber,
+'' as nmlsnumber,
+'' as achindicator,
+--NEW Due Date Logic as of 2/19/2019 - If RSSI-DUE-DATE > RSSI-CUR-DUE-DTE Set Amount Due to $0.00
+'' as rssiduedatecheck,
+'' as rssicurduedatecheck,
+'' as newamountdue,
+'' as newrssipipymt,
+'' as newrssiintdue,
+'' as newrssiescpymt,
+'' as newrssibillpmtamt,
+'' as newrssifees,
+'' as newrssilatechgdue,
+'' as newrssicrinspymnt,
+'' as newrssibilltotaldue,
+'' as newintratechange,
+'' as rssimatdate,
+'' as interestrateuntildate,
+'' as NEW_F6_Past_Due_Payments,
+'' as coborrowerrec,
+'' as coborrowerverified,
+'' as coborrowerbillstmnt,
+'' as coborrowername,
+'' as coborroweraddr1,
+'' as coborroweraddr2,
+'' as coborrowercity,
+'' as coborrowerstate,
+'' as coborrowerzip,
+'' as maturitydateyears,
+'' as suspendlatefeelanguage,
+'' as [RSSI-UNCOLL-ESC-SHORT],
+'' as [RSSI-AUDIT-DATE],
+'' as tax_insert,
+'' as onsertindicator,
+'' as 'SEQ-NO'
+
+from  Gateway_Header_Records a
+	join Gateway_B_Records b on b.[RSSI-INST] = a.[RSSI-INST] --and b.[FileName] = @filename
+	join Gateway_P_Records c on c.[RSSI-INST] = a.[RSSI-INST] --and c.[FileName] = @filename
+	join Gateway_A_records d on d.[RSSI-INST] = a.[RSSI-INST] --and d.[FileName] = @filename
+	join gateway_Z_Records z on z.[RSSI-INST] = a.[RSSI-INST] --and z.[FileName] = @filename
+	--join gateway_t_records e on e.[RSSI-INST] = a.[RSSI-INST] and e.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] and 
+		--ltrim(rtrim(e.[rssi-log-tran])) in ('5620', '5710', '5730',  '5742', '5745', '5750',  '5770', '5771', '5775', '5776', '5850') /*and e.[FileName] = @filename*/
+	join gateway_f_records f on f.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and f.[RSSI-SEQ-NO] = e.[RSSI-SEQ-NO]
+	--join Mortgage_TandF_Reference x on ltrim(rtrim(x.[rssi-log-tran])) = ltrim(rtrim(e.[RSSI-LOG-TRAN])) 
+	left join Gateway_2_records g on g.[RSSI-INST] = a.[RSSI-INST] and g.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and g.[FileName] = @filename
+	left join Gateway_J_Records j on j.[rssi-inst] = a.[rssi-inst] and j.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and j.[FileName] = @filename
+	left join gateway_x_records k on k.[rssi-inst] = a.[rssi-inst] and k.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and k.[FileName] = @filename
+	left join gateway_u_records u on u.[RSSI-INST] = a.[RSSI-INST] and u.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and u.[FileName] = @filename
+	left join gateway_i_records i on i.[RSSI-INST] = a.[RSSI-INST] and i.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] and ltrim(rtrim(i.[rssi-cb-cbwr1-bill-stmnt])) <> 'O' --and i.[FileName] = @filename
+
+where /*and g.[FileName] = @filename*/ convert(numeric(18,0), d.[RSSI-NUM-DAYS-DELQ]) <= 45 and j.[RSSI-RCD-ID] is null  and d.[RSSI-LOSS-MIT-IND] <>'A' --AND d.[RSSI-EMAIL-BILL-IND] <> 'Y'  and d.[rssi-acct-no] like '%' + @account + '%'
+		and f.[rssi-fd-fee-desc] = 'Accrued Late Charge' 
+		and try_convert(date, (replace (f.[RSSI-FD-ASSESS-DATE], ' 1', '')), 101) > try_convert(date, d.[rssi-lip-la-date], 101) 
+		and try_convert(date, (replace (f.[RSSI-FD-ASSESS-DATE], ' 1', '')), 101) <= try_convert(date, d.[rssi-run-date], 101)
+
+union
+
+select distinct 'Z' as sortcode,
+d.[RSSI-ACCT-NO] as accountnumber,
+'' as recordtype1,
+'' as [RSSI-INST], 
+'' as  Account_Number_H,
+'' as recordtype2,
+'' as Account_Number_B,
+'' as [RSSI-INSTITUTION-NAME],
+'' as [RSSI-INST-ADRS-1],
+'' as [RSSI-INST-ADRS-2],
+'' as [RSSI-INST-CITY],
+'' as [RSSI-INST-STATE],
+'' as [RSSI-INST-ZIP],
+'' as recordtype3,
+'' as [rssi-inst],
+'' as [RSSI-N1MX-PLSS-ENTITY],
+'' as [RSSI-ENTY-NAME],
+'' as [RSSI-ENTY-ADRS-1],
+'' as [RSSI-ENTY-ADRS-2],
+'' as [RSSI-ENTY-CITY],
+'' as [RSSI-ENTY-STATE],
+'' as [RSSI-ENTY-ZIP],
+'' as recordtype4,
+'' as b3_statementdate,
+'' as c1_borrowername,
+'' as c2_secondaryname,
+'' as Mailing_Address_1,
+'' as Mailing_Address_2,
+'' as Mailing_Address_City,
+'' as Mailing_Address_State,
+'' as Mailing_Address_Zip,
+/*Summary Box*/
+z.[rssi-acct-no] as d1_accountnumber,
+'' as D2_Payment_Due_Date,
+'' as D3_Regular_Mortgage_Amount_Due,
+'' as D4_If_Payment_Received_After_Date,
+'' as D5_If_Payment_Received_After_Late_Fee_Amount,
+/*Account Information*/
+'' as E1_Property_Address_1,
+'' as E1_Property_Address_2,
+'' as E1_Property_Address_City,
+'' as E1_Property_Address_State,
+'' as E1_Property_Address_Zip,
+'' as E2_Outstanding_Principal_Balance,
+'' as E3_Interest_Rate_Until_Date,
+'' as E4_Interest_Rate,
+'' as 'PrePayment_Penalty',
+/*Explanation of Amount Due*/
+'' as [RSSI-P-I-PYMT],
+'' as [rssi-fees],
+'' as [rssi-late-chg-due],
+'' as [RSSI-CR-INS-PYMT],
+--d.[RSSI-P-I-PYMT] - d.[RSSI-INT-DUE] as Principal,
+'' as F2_Interest,
+'' as F3_Escrow,
+'' as F4_Regular_Monthly_Payment,
+--d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT] as total_fees_charged,
+'' as F6_Past_Due_Payments,
+--d.[RSSI-BILL-PMT-AMT] + (d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT]) +[RSSI-BILL-TOTAL-DUE] as Total_Amount_Due,
+/*Transaction Activity*/
+'' as G1_Transaction_Period_Begin_Date,
+'' as G2_Transaction_Period_End_Date,
+/*Transaction Amount*/
+'' as H1_Principal,
+'' as H2_Interest,
+'' as H3_Impound_Escrow,
+'' as H4_Fees,
+'' as H5_Late_Charges,
+'' as H6_Partial_Payment_Unapplied,
+'' as H7_Total,
+'' as H8_Principal_YTD,
+'' as H9_Interest_YTD,
+'' as H10_Impound_Escrow_YTD,
+'' as H11_Fees_YTD,
+'' as H12_Late_Charges_YTD,
+'' as H13_Partial_Payment_Unapplied_Total,
+--'' as --d.[rssi-prin-paid-ytd]+[RSSI-INT-PD-YTD]+[rssi-esc-paid-ytd]+[rssi-fees-paid-ytd]+[rssi-late-chg-paid-ytd]+ g.[RSSI_UNAP_BAL_TOT] as Total_YTD,
+/*Messaging*/
+'' as DL1_As_of_Date,
+'' as DL2_Day_Delinquent,
+'' as DL3_Past_Paid_Due_Date,
+'' as DL4_Past_Paid_Payment_Date_1,
+--case when d.[RSSI-PMT-PAID-DATE-1] <> '' then 'Fully paid on d.[rssi-pmt-paid-1-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_1,
+'' as DL5_Past_Paid_Payment_Due_Date_2,
+'' as DL6_Past_Paid_Payment_Paid_Date_2,
+--case when d.[RSSI-PMT-PAID-DATE-2] <> '' then 'Fully paid on d.[rssi-pmt-paid-2-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_2,
+'' as DL7_Past_Paid_Payment_Due_Date_3,
+'' as DL8_Past_Paid_Payment_Date_3,
+--case when d.[RSSI-PMT-PAID-DATE-3] <> '' then 'Fully paid on d.[rssi-pmt-paid-3-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_3,
+'' as DL9_Past_Paid_Payment_Due_Date_4,
+'' as DL10_Past_Paid_Payment_Date_4,
+--case when d.[RSSI-PMT-PAID-DATE-4] <> '' then 'Fully paid on d.[rssi-pmt-paid-4-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_4,
+'' as DL11_Past_Paid_Payment_Due_Date_5,
+'' as DL12_Past_Paid_Payment_Date_5,
+--case when d.[RSSI-PMT-PAID-DATE-5] <> '' then 'Fully paid on d.[rssi-pmt-paid-5-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_5,
+'' as DL13_Past_Paid_Payment_Due_Date_6,
+'' as DL14_Past_Paid_Payment_Date_6,
+--case when d.[RSSI-PMT-PAID-DATE-6] <> '' then 'Fully paid on d.[rssi-pmt-paid-6-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_6,
+'' as DL15_Current_Payment_Due_Date,
+'' as DL16_Current_Payment_Amount_Due,
+--d.[RSSI-BILL-PMT-AMT] + (d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT]) + d.[RSSI-BILL-TOTAL-DUE] as Total_Amount_To_Bring_Current,
+'' as K4_Account_Number,
+'' as K5_Payment_Due_Date,
+'' as K6_Regular_Mortgage_Amount_Due,
+'' as K7_Late_Fee_Amount,
+'' as K8_Late_Fee_Date,
+'' as K9_ACH_Draft_Date,
+'' as [rssi-rcd-id],
+'' as [rssi-b-chap],
+'' as [RSSI-NUM-DAYS-DELQ],
+'' as [RSSI-LMT-PROGRAM],
+'' as  lmtprogramdescription,
+'' as [RSSI-EMAIL-BILL-IND],
+'' as [RSSI-LCI-FREEZE-TO-DT], --use for conditional on showing suspend late fee language
+'' as [rssi-lci-freeze-from-dt],
+'' as [RSSI-RCD-ID],
+'' as trfeecode,
+'' as transactioncode,
+'' as g3_transaction_date,
+'' as [RSSI-TR-AMT],
+'' as [rssi-tr-amt-to-prin],
+'' as [rssi-tr-amt-to-int],
+'' as [rssi-tr-amt-to-esc],
+'' as [rssi-tr-amt-to-lc],
+'' as [rssi-tr-amt-to-pvar],
+'' as [rssi-tr-amt-to-ivar],
+'' as [rssi-tr-amt-to-evar],
+'' as [rssi-tr-amt-to-lvar],
+'' as [RSSI-TR-FEE-DESC],
+'' as [chargedescription],
+'' as [paymentdescription],
+'' as [RSSI-RCD-ID],
+'' as [RSSI-FD-ASSESS-AMT],
+'' as [RSSI-FD-FEE-DESC],
+'' as g3_fee_assess_date,
+'' as g3_fee_coll_date,
+'' as agency,
+'' as phonenumber,
+'' as nmlsnumber,
+'' as achindicator,
+--NEW Due Date Logic as of 2/19/2019 - If RSSI-DUE-DATE > RSSI-CUR-DUE-DTE Set Amount Due to $0.00
+'' as rssiduedatecheck,
+'' as rssicurduedatecheck,
+'' as newamountdue,
+'' as newrssipipymt,
+'' as newrssiintdue,
+'' as newrssiescpymt,
+'' as newrssibillpmtamt,
+'' as newrssifees,
+'' as newrssilatechgdue,
+'' as newrssicrinspymnt,
+'' as newrssibilltotaldue,
+'' as newintratechange,
+'' as rssimatdate,
+'' as interestrateuntildate,
+'' as NEW_F6_Past_Due_Payments,
+'' as coborrowerrec,
+'' as coborrowerverified,
+'' as coborrowerbillstmnt,
+'' as coborrowername,
+'' as coborroweraddr1,
+'' as coborroweraddr2,
+'' as coborrowercity,
+'' as coborrowerstate,
+'' as coborrowerzip,
+'' as maturitydateyears,
+'' as suspendlatefeelanguage,
+'' as [RSSI-UNCOLL-ESC-SHORT],
+'' as [RSSI-AUDIT-DATE],
+'' as tax_insert,
+'' as onsertndicator,
+'' as 'SEQ-NO'
+
+from  Gateway_Header_Records a
+	join Gateway_B_Records b on b.[RSSI-INST] = a.[RSSI-INST] --and b.[FileName] = @filename
+	join Gateway_P_Records c on c.[RSSI-INST] = a.[RSSI-INST] --and c.[FileName] = @filename
+	join Gateway_A_records d on d.[RSSI-INST] = a.[RSSI-INST] --and d.[FileName] = @filename
+	join gateway_Z_Records z on z.[RSSI-INST] = a.[RSSI-INST] --and z.[FileName] = @filename
+	join gateway_t_records e on e.[RSSI-INST] = a.[RSSI-INST] and e.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] /*and e.[FileName] = @filename*/ and e.[rssi-log-tran] in ('5605', '5705', '5706', '5707')
+	--join gateway_f_records f on f.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] and f.[RSSI-FD-FEE-TYPE] = e.[RSSI-TR-FEE-CODE] --and f.[RSSI-SEQ-NO] = e.[RSSI-SEQ-NO]
+	--join Mortgage_TandF_Reference x on ltrim(rtrim(x.[rssi-log-tran])) = ltrim(rtrim(e.[RSSI-LOG-TRAN])) and ltrim(rtrim(x.[rssi-tr-fee-code])) = ltrim(rtrim(e.[RSSI-TR-FEE-CODE]))
+	left join Gateway_2_records g on g.[RSSI-INST] = a.[RSSI-INST] and g.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and g.[FileName] = @filename
+	left join Gateway_J_Records j on j.[rssi-inst] = a.[rssi-inst] and j.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and j.[FileName] = @filename 
+	left join gateway_x_records k on k.[rssi-inst] = a.[rssi-inst] and k.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and k.[FileName] = @filename
+	left join gateway_u_records u on u.[RSSI-INST] = a.[RSSI-INST] and u.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and u.[FileName] = @filename
+	left join gateway_i_records i on i.[RSSI-INST] = a.[RSSI-INST] and i.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] and ltrim(rtrim(i.[rssi-cb-cbwr1-bill-stmnt])) <> 'O' --and i.[FileName] = @filename
+
+where /*and g.[FileName] = @filename*/ convert(numeric(18,0), d.[RSSI-NUM-DAYS-DELQ]) <= 45 and j.[RSSI-RCD-ID] is null  and d.[RSSI-LOSS-MIT-IND] <>'A' --AND d.[RSSI-EMAIL-BILL-IND] <> 'Y'  and d.[rssi-acct-no] like '%' + @account + '%'
+
+
+--order by accountnumber, sortcode, g3_transaction_date
+
+union
+
+--General Statement Layout 5740 Transaction Code
+
+select distinct 'H' as sortcode,
+d.[RSSI-ACCT-NO] as accountnumber,
+'' as recordtype1,
+a.[RSSI-INST], 
+a.[RSSI-ACCT-NO] as Account_Number_H,
+'' as recordtype2,
+b.[RSSI-ACCT-NO] as Account_Number_B,
+b.[RSSI-INSTITUTION-NAME],
+b.[RSSI-INST-ADRS-1],
+b.[RSSI-INST-ADRS-2],
+b.[RSSI-INST-CITY],
+b.[RSSI-INST-STATE],
+b.[RSSI-INST-ZIP],
+'' as recordtype3,
+c.[rssi-inst],
+c.[RSSI-N1MX-PLSS-ENTITY],
+c.[RSSI-ENTY-NAME],
+c.[RSSI-ENTY-ADRS-1],
+c.[RSSI-ENTY-ADRS-2],
+c.[RSSI-ENTY-CITY],
+c.[RSSI-ENTY-STATE],
+c.[RSSI-ENTY-ZIP],
+'' as recordtype4,
+substring ( d.[rssi-run-date], 4, 1)+substring (d.[rssi-run-date], 5, 1) + '/' +substring (d.[rssi-run-date], 6, 1)+substring (d.[rssi-run-date], 7, 1)+ '/' +substring (d.[rssi-run-date], 2, 1)+substring (d.[rssi-run-date], 3, 1) AS  b3_statementdate,
+d.[RSSI-PRIMARY-NAME] as c1_borrowername,
+d.[rssi-secondary-name] as c2_secondaryname,
+d.[RSSI-MAIL-ADRS-1] as Mailing_Address_1,
+d.[RSSI-MAIL-ADRS-2] AS Mailing_Address_2,
+d.[RSSI-MAIL-CITY] as Mailing_Address_City,
+d.[RSSI-MAIL-STATE] as Mailing_Address_State,
+d.[RSSI-MAIL-ZIP] as Mailing_Address_Zip,
+/*Summary Box*/
+d.[RSSI-ACCT-NO] as d1_accountnumber,
+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 3, 1)+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 4, 1) + '/' +substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 5, 1)+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 6, 1)+ '/' +substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 1, 1)+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 2, 1) AS  D2_Payment_Due_Date,
+case when 
+
+d.[RSSI-CLS-CD] not in (1,9) then '$0.00 ' else replace (d.[RSSI-BILL-PMT-AMT],'+','') end as D3_Regular_Mortgage_Amount_Due
+,
+substring ((replace (d.[RSSI-BILL-PMT-DTE],'+','')), 3, 1)+substring ((replace (d.[RSSI-BILL-PMT-DTE],'+','')), 4, 1) + '/' +substring ((replace (d.[RSSI-BILL-PMT-DTE],'+','')), 5, 1)+substring ((replace (d.[RSSI-BILL-PMT-DTE],'+','')), 6, 1)+ '/' +substring ((replace (d.[RSSI-BILL-PMT-DTE],'+','')), 1, 1)+substring ((replace (d.[RSSI-BILL-PMT-DTE],'+','')), 2, 1) as D4_If_Payment_Received_After_Date,
+d.[RSSI-LATE-CHG-AMT] as D5_If_Payment_Received_After_Late_Fee_Amount,
+/*Account Information*/
+d.[RSSI-APPL-ADRS-1] as E1_Property_Address_1,
+d.[RSSI-APPL-ADRS-2] as E1_Property_Address_2,
+d.[RSSI-APPL-CITY] as E1_Property_Address_City,
+d.[RSSI-APPL-STATE] as E1_Property_Address_State,
+d.[RSSI-APPL-ZIP] as E1_Property_Address_Zip,
+replace (d.[RSSI-PRIN-BAL],'+','') as E2_Outstanding_Principal_Balance,
+case when [rssi-rate-chg-date] = ' 00000000' then [rssi-rate-chg-date] else substring ((replace ([RSSI-RATE-CHG-DATE],'+','')),6, 1)+substring ((replace ([RSSI-RATE-CHG-DATE],'+','')),7, 1) + '/' +substring ((replace ([RSSI-RATE-CHG-DATE],'+','')), 8, 1)+substring ((replace ([RSSI-RATE-CHG-DATE],'+','')), 9, 1)+ '/' +substring ((replace ([RSSI-RATE-CHG-DATE],'+','')), 4, 1)+substring ((replace ([RSSI-RATE-CHG-DATE],'+','')),5, 1)end as E3_Interest_Rate_Until_Date,
+case when d.[RSSI-NOTE-RATE] = '0.00001' then '0.00000%'  else replace (d.[RSSI-NOTE-RATE], '+','') end as E4_Interest_Rate,
+'PrePayment_Penalty' as 'PrePayment_Penalty',
+/*Explanation of Amount Due*/
+d.[RSSI-P-I-PYMT],
+case 
+	when ltrim(rtrim(d.[rssi-fees])) = '+00000.00' then d.[rssi-fees]
+	else '+' + substring(d.[rssi-fees], 2, 10)
+end as [rssi-fees],
+d.[rssi-late-chg-due],
+d.[RSSI-CR-INS-PYMT],
+--d.[RSSI-P-I-PYMT] - d.[RSSI-INT-DUE] as Principal,
+replace (d.[rssi-int-due],'+','') as F2_Interest,
+replace (d.[RSSI-ESC-PYMT],'+','') as F3_Escrow,
+case when 
+
+d.[RSSI-CLS-CD] not in (1,9) then '$0.00 ' else replace (d.[RSSI-BILL-PMT-AMT],'+','') end as F4_Regular_Monthly_Payment,
+--d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT] as total_fees_charged,
+case when 
+
+d.[RSSI-CLS-CD] not in (1,9) then '$0.00 ' else replace (d.[RSSI-BILL-TOTAL-DUE],'+','') end as F6_Past_Due_Payments,
+--d.[RSSI-BILL-PMT-AMT] + (d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT]) +[RSSI-BILL-TOTAL-DUE] as Total_Amount_Due,
+/*Transaction Activity*/
+case when try_convert (date, d.[RSSI-LIP-LA-DATE], 101) = '' 
+then '' else substring ( d.[RSSI-LIP-LA-DATE], 4, 1)+substring (d.[RSSI-LIP-LA-DATE], 5, 1) + '/' +substring (d.[RSSI-LIP-LA-DATE], 6, 1)+substring (d.[RSSI-LIP-LA-DATE], 7, 1)+ '/' +substring (d.[RSSI-LIP-LA-DATE], 2, 1)+substring (d.[RSSI-LIP-LA-DATE], 3, 1)
+end  as G1_Transaction_Period_Begin_Date ,
+substring ( d.[RSSI-RUN-DATE], 4, 1)+substring (d.[RSSI-RUN-DATE], 5, 1) + '/' +substring (d.[RSSI-RUN-DATE], 6, 1)+substring (d.[RSSI-RUN-DATE], 7, 1)+ '/' +substring (d.[RSSI-RUN-DATE], 2, 1)+substring (d.[RSSI-RUN-DATE], 3, 1) as G2_Transaction_Period_End_Date,
+/*Transaction Amount*/
+replace (d.[RSSI-PRIN-PD-SINCE-LST-STMT],'+','') as H1_Principal,
+replace (d.[RSSI-INT-PD-SINCE-LST-STMT],'+','') as H2_Interest,
+replace (d.[RSSI-ESC-PD-SINCE-LST-STMT],'+','') as H3_Impound_Escrow,
+replace (d.[rssi-fees-pd-since-lst-stmt], '+','') as H4_Fees,
+replace (d.[rssi-lc-pd-since-lst-stmt],'+','') as H5_Late_Charges,
+replace (d.[rssi-amt-to-uaf-since-lst-stmt],'+','') as H6_Partial_Payment_Unapplied,
+replace (d.[rssi-tot-pd-since-lst-stmt],'+','') as H7_Total,
+replace (d.[rssi-prin-paid-ytd],'+','') as H8_Principal_YTD,
+replace (d.[RSSI-INT-PD-YTD],'+','') as H9_Interest_YTD,
+replace (d.[rssi-esc-paid-ytd],'+','') as H10_Impound_Escrow_YTD,
+replace (d.[rssi-fees-paid-ytd],'+','') as H11_Fees_YTD,
+replace (d.[rssi-late-chg-paid-ytd],'+','') as H12_Late_Charges_YTD,
+g.[RSSI-UNAP-BAL-TOT] as H13_Partial_Payment_Unapplied_Total,
+--d.[rssi-prin-paid-ytd]+[RSSI-INT-PD-YTD]+[rssi-esc-paid-ytd]+[rssi-fees-paid-ytd]+[rssi-late-chg-paid-ytd]+ g.[RSSI_UNAP_BAL_TOT] as Total_YTD,
+/*Messaging*/
+substring ( d.[rssi-run-date], 4, 1)+substring (d.[rssi-run-date], 5, 1) + '/' +substring (d.[rssi-run-date], 6, 1)+substring (d.[rssi-run-date], 7, 1)+ '/' +substring (d.[rssi-run-date], 2, 1)+substring (d.[rssi-run-date], 3, 1)   as DL1_As_of_Date,
+cast(convert(numeric(18,2), d.[rssi-num-days-delq]) as varchar(50)) as DL2_Day_Delinquent,
+substring ( d.[RSSI-PMT-DUE-DATE-1], 4, 1)+substring (d.[RSSI-PMT-DUE-DATE-1], 5, 1) + '/' +substring (d.[RSSI-PMT-DUE-DATE-1], 6, 1)+substring (d.[RSSI-PMT-DUE-DATE-1], 7, 1)+ '/' +substring (d.[RSSI-PMT-DUE-DATE-1], 2, 1)+substring (d.[RSSI-PMT-DUE-DATE-1], 3, 1) as DL3_Past_Paid_Due_Date,
+substring ( d.[RSSI-PMT-PAID-DATE-1], 4, 1)+substring (d.[RSSI-PMT-PAID-DATE-1], 5, 1) + '/' +substring (d.[RSSI-PMT-PAID-DATE-1], 6, 1)+substring (d.[RSSI-PMT-PAID-DATE-1], 7, 1)+ '/' +substring (d.[RSSI-PMT-PAID-DATE-1], 2, 1)+substring (d.[RSSI-PMT-PAID-DATE-1], 3, 1) as DL4_Past_Paid_Payment_Date_1,
+--case when d.[RSSI-PMT-PAID-DATE-1] <> '' then 'Fully paid on d.[rssi-pmt-paid-1-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_1,
+substring ( d.[RSSI-PMT-DUE-DATE-2], 4, 1)+substring (d.[RSSI-PMT-DUE-DATE-2], 5, 1) + '/' +substring (d.[RSSI-PMT-DUE-DATE-2], 6, 1)+substring (d.[RSSI-PMT-DUE-DATE-2], 7, 1)+ '/' +substring (d.[RSSI-PMT-DUE-DATE-2], 2, 1)+substring (d.[RSSI-PMT-DUE-DATE-2], 3, 1) as DL5_Past_Paid_Payment_Due_Date_2,
+substring ( d.[RSSI-PMT-PAID-DATE-2], 4, 1)+substring (d.[RSSI-PMT-PAID-DATE-2], 5, 1) + '/' +substring (d.[RSSI-PMT-PAID-DATE-2], 6, 1)+substring (d.[RSSI-PMT-PAID-DATE-2], 7, 1)+ '/' +substring (d.[RSSI-PMT-PAID-DATE-2], 2, 1)+substring (d.[RSSI-PMT-PAID-DATE-2], 3, 1) as DL6_Past_Paid_Payment_Paid_Date_2,
+--case when d.[RSSI-PMT-PAID-DATE-2] <> '' then 'Fully paid on d.[rssi-pmt-paid-2-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_2,
+substring ( d.[RSSI-PMT-DUE-DATE-3], 4, 1)+substring (d.[RSSI-PMT-DUE-DATE-3], 5, 1) + '/' +substring (d.[RSSI-PMT-DUE-DATE-3], 6, 1)+substring (d.[RSSI-PMT-DUE-DATE-3], 7, 1)+ '/' +substring (d.[RSSI-PMT-DUE-DATE-3], 2, 1)+substring (d.[RSSI-PMT-DUE-DATE-3], 3, 1) as DL7_Past_Paid_Payment_Due_Date_3,
+substring ( d.[RSSI-PMT-PAID-DATE-3], 4, 1)+substring (d.[RSSI-PMT-PAID-DATE-3], 5, 1) + '/' +substring (d.[RSSI-PMT-PAID-DATE-3], 6, 1)+substring (d.[RSSI-PMT-PAID-DATE-3], 7, 1)+ '/' +substring (d.[RSSI-PMT-PAID-DATE-3], 2, 1)+substring (d.[RSSI-PMT-PAID-DATE-3], 3, 1)  as DL8_Past_Paid_Payment_Date_3,
+--case when d.[RSSI-PMT-PAID-DATE-3] <> '' then 'Fully paid on d.[rssi-pmt-paid-3-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_3,
+substring ( d.[RSSI-PMT-DUE-DATE-4], 4, 1)+substring (d.[RSSI-PMT-DUE-DATE-4], 5, 1) + '/' +substring (d.[RSSI-PMT-DUE-DATE-4], 6, 1)+substring (d.[RSSI-PMT-DUE-DATE-4], 7, 1)+ '/' +substring (d.[RSSI-PMT-DUE-DATE-4], 2, 1)+substring (d.[RSSI-PMT-DUE-DATE-4], 3, 1) as DL9_Past_Paid_Payment_Due_Date_4,
+substring ( d.[RSSI-PMT-PAID-DATE-4], 4, 1)+substring (d.[RSSI-PMT-PAID-DATE-4], 5, 1) + '/' +substring (d.[RSSI-PMT-PAID-DATE-4], 6, 1)+substring (d.[RSSI-PMT-PAID-DATE-4], 7, 1)+ '/' +substring (d.[RSSI-PMT-PAID-DATE-4], 2, 1)+substring (d.[RSSI-PMT-PAID-DATE-4], 3, 1)as DL10_Past_Paid_Payment_Date_4,
+--case when d.[RSSI-PMT-PAID-DATE-4] <> '' then 'Fully paid on d.[rssi-pmt-paid-4-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_4,
+substring ( d.[RSSI-PMT-DUE-DATE-5], 4, 1)+substring (d.[RSSI-PMT-DUE-DATE-5], 5, 1) + '/' +substring (d.[RSSI-PMT-DUE-DATE-5], 6, 1)+substring (d.[RSSI-PMT-DUE-DATE-5], 7, 1)+ '/' +substring (d.[RSSI-PMT-DUE-DATE-5], 2, 1)+substring (d.[RSSI-PMT-DUE-DATE-5], 3, 1) as DL11_Past_Paid_Payment_Due_Date_5,
+substring ( d.[RSSI-PMT-PAID-DATE-5], 4, 1)+substring (d.[RSSI-PMT-PAID-DATE-5], 5, 1) + '/' +substring (d.[RSSI-PMT-PAID-DATE-5], 6, 1)+substring (d.[RSSI-PMT-PAID-DATE-5], 7, 1)+ '/' +substring (d.[RSSI-PMT-PAID-DATE-5], 2, 1)+substring (d.[RSSI-PMT-PAID-DATE-5], 3, 1) as DL12_Past_Paid_Payment_Date_5,
+--case when d.[RSSI-PMT-PAID-DATE-5] <> '' then 'Fully paid on d.[rssi-pmt-paid-5-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_5,
+substring ( d.[RSSI-PMT-DUE-DATE-6], 4, 1)+substring (d.[RSSI-PMT-DUE-DATE-6], 5, 1) + '/' +substring (d.[RSSI-PMT-DUE-DATE-6], 6, 1)+substring (d.[RSSI-PMT-DUE-DATE-6], 7, 1)+ '/' +substring (d.[RSSI-PMT-DUE-DATE-6], 2, 1)+substring (d.[RSSI-PMT-DUE-DATE-6], 3, 1) as DL13_Past_Paid_Payment_Due_Date_6,
+substring ( d.[RSSI-PMT-PAID-DATE-6], 4, 1)+substring (d.[RSSI-PMT-PAID-DATE-6], 5, 1) + '/' +substring (d.[RSSI-PMT-PAID-DATE-6], 6, 1)+substring (d.[RSSI-PMT-PAID-DATE-6], 7, 1)+ '/' +substring (d.[RSSI-PMT-PAID-DATE-6], 2, 1)+substring (d.[RSSI-PMT-PAID-DATE-6], 3, 1)  as DL14_Past_Paid_Payment_Date_6,
+--case when d.[RSSI-PMT-PAID-DATE-6] <> '' then 'Fully paid on d.[rssi-pmt-paid-6-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_6,
+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 3, 1)+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 4, 1) + '/' +substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 5, 1)+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 6, 1)+ '/' +substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 1, 1)+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 2, 1) as DL15_Current_Payment_Due_Date,
+case when d.[RSSI-CLS-CD] not in (1,9) then '$0.00 ' else replace (d.[RSSI-BILL-PMT-AMT],'+','') end as DL16_Current_Payment_Amount_Due,
+--d.[RSSI-BILL-PMT-AMT] + (d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT]) + d.[RSSI-BILL-TOTAL-DUE] as Total_Amount_To_Bring_Current,
+d.[RSSI-ACCT-NO]  as K4_Account_Number,
+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 3, 1)+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 4, 1) + '/' +substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 5, 1)+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 6, 1)+ '/' +substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 1, 1)+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 2, 1) as K5_Payment_Due_Date,
+case when d.[RSSI-CLS-CD] not in (1,9) then '$0.00 ' else replace (d.[RSSI-BILL-PMT-AMT],'+','') end  as K6_Regular_Mortgage_Amount_Due,
+replace (d.[RSSI-LATE-CHG-AMT],'+','') as K7_Late_Fee_Amount,
+substring ((replace (d.[rssi-bill-pmt-dte],'+','')), 3, 1)+substring ((replace (d.[rssi-bill-pmt-dte],'+','')), 4, 1) + '/' +substring ((replace (d.[rssi-bill-pmt-dte],'+','')), 5, 1)+substring ((replace (d.[rssi-bill-pmt-dte],'+','')), 6, 1)+ '/' +substring ((replace (d.[rssi-bill-pmt-dte],'+','')), 1, 1)+substring ((replace (d.[rssi-bill-pmt-dte],'+','')), 2, 1) as K8_Late_Fee_Date,
+ substring (d.[RSSI-NEXT-DRAFT-DT],1,6) as K9_ACH_Draft_Date,
+'' as [rssi-rcd-id],
+'' as [rssi-b-chap],
+cast(convert(numeric(18,2), d.[rssi-num-days-delq]) as varchar(50)) as DL2_Day_Delinquent,
+g.[RSSI-LMT-PROGRAM],
+'' as lmtprogramdescription,
+d.[RSSI-EMAIL-BILL-IND],
+try_convert(date, substring(k.[RSSI-LCI-FREEZE-TO-DT], 2, 6), 101) as [rssi-lci-freeze-to-dt], --use for conditional on showing suspend late fee language
+try_convert(date, substring(k.[rssi-lci-freeze-from-dt], 2, 6), 101) as [rssi-lci-freeze-from-dt],
+'' as [RSSI-RCD-ID],
+'' as trfeecode,
+'' as transactioncode,
+'' as g3_transaction_date,
+'' as [RSSI-TR-AMT],
+'' as [rssi-tr-amt-to-prin],
+'' as [rssi-tr-amt-to-int],
+'' as [rssi-tr-amt-to-esc],
+'' as [rssi-tr-amt-to-lc],
+'' as [rssi-tr-amt-to-pvar],
+'' as [rssi-tr-amt-to-ivar],
+'' as [rssi-tr-amt-to-evar],
+'' as [rssi-tr-amt-to-lvar],
+'' as [RSSI-TR-FEE-DESC],
+'' as [chargedescription],
+'' as [paymentdescription],
+'' as [RSSI-RCD-ID],
+'' as [RSSI-FD-ASSESS-AMT],
+'' as [RSSI-FD-FEE-DESC],
+'' as g3_fee_assess_date,
+'' as g3_fee_coll_date,
+u.[RSSI-USR-51] as agency,
+case when u.[rssi-usr-50] = '' then '' else substring(u.[rssi-usr-50], 1,3) + '-' + substring(u.[rssi-usr-50], 4,3) + '-' + substring(u.[rssi-usr-50], 7, 4) end  as phonenumber,
+case when u.[rssi-usr-46] = '' then '' else '#' + ltrim(u.[rssi-usr-46]) end as nmlsnumber,
+case when d.[rssi-usr-36] = 'N' then '' else d.[rssi-usr-36] end as achindicator,
+--NEW Due Date Logic as of 2/19/2019 - If RSSI-DUE-DATE > RSSI-CUR-DUE-DTE Set Amount Due to $0.00
+substring (replace (d.[rssi-due-date], ' ', ''), 5, 1)+substring ( replace (d.[rssi-due-date], ' ', ''), 6, 1) + '/' +substring ( replace (d.[rssi-due-date], ' ', ''), 3, 1)+substring ( replace (d.[rssi-due-date], ' ', ''), 4, 1)+ '/' +substring ( replace (d.[rssi-due-date], ' ', ''), 1, 1)+substring ( replace (d.[rssi-due-date], ' ', ''), 2, 1) as rssiduedatecheck,
+substring (replace (d.[RSSI-CUR-DUE-DTE], '+', ''), 5, 1)+substring ( replace (d.[RSSI-CUR-DUE-DTE], '+', ''), 6, 1) + '/' +substring ( replace (d.[RSSI-CUR-DUE-DTE], '+', ''), 3, 1)+substring ( replace (d.[RSSI-CUR-DUE-DTE], '+', ''), 4, 1)+ '/' +substring ( replace (d.[RSSI-CUR-DUE-DTE], '+', ''), 1, 1)+substring ( replace (d.[RSSI-CUR-DUE-DTE], '+', ''), 2, 1) as rssicurduedatecheck,
+case
+	when try_convert(date, (replace (d.[rssi-due-date], ' ', '')), 101) > try_convert (date, (replace (d.[RSSI-CUR-DUE-DTE],'+','')),101) then '$0.00'
+	when d.[RSSI-CLS-CD] not in (1,9) then '$0.00 ' 
+	else d.[RSSI-BILL-PMT-AMT]
+end as newamountdue,
+case
+	when try_convert(date, (replace (d.[rssi-due-date], ' ', '')), 101) > try_convert (date, (replace (d.[RSSI-CUR-DUE-DTE],'+','')),101) then '$0.00'
+	else d.[rssi-p-i-pymt]
+end as newrssipipymt,
+case
+	when try_convert(date, (replace (d.[rssi-due-date], ' ', '')), 101) > try_convert (date, (replace (d.[RSSI-CUR-DUE-DTE],'+','')),101) then '$0.00'
+	else d.[rssi-int-due]
+end as newrssiintdue,
+case
+	when try_convert(date, (replace (d.[rssi-due-date], ' ', '')), 101) > try_convert (date, (replace (d.[RSSI-CUR-DUE-DTE],'+','')),101) then '$0.00'
+	else d.[RSSI-ESC-PYMT]
+end as newrssiescpymt,
+case
+	when try_convert(date, (replace (d.[rssi-due-date], ' ', '')), 101) > try_convert (date, (replace (d.[RSSI-CUR-DUE-DTE],'+','')),101) then '$0.00'
+	when d.[RSSI-CLS-CD] not in (1,9) then '$0.00 ' 
+	else d.[RSSI-BILL-PMT-AMT]
+end as newrssibillpmtamt,
+case
+	when try_convert(date, (replace (d.[rssi-due-date], ' ', '')), 101) > try_convert (date, (replace (d.[RSSI-CUR-DUE-DTE],'+','')),101) then '$0.00'
+	else case when ltrim(rtrim(d.[rssi-fees])) = '+00000.00' then d.[rssi-fees] else '+' + substring(d.[rssi-fees], 2, 10) end 
+end as newrssifees,
+case
+	when try_convert(date, (replace (d.[rssi-due-date], ' ', '')), 101) > try_convert (date, (replace (d.[RSSI-CUR-DUE-DTE],'+','')),101) then '$0.00'
+	else d.[RSSI-LATE-CHG-DUE]
+end as newrssilatechgdue,
+case
+	when try_convert(date, (replace (d.[rssi-due-date], ' ', '')), 101) > try_convert (date, (replace (d.[RSSI-CUR-DUE-DTE],'+','')),101) then '$0.00'
+	else d.[RSSI-CR-INS-PYMT]
+end as newrssicrinspymnt,
+case
+	when try_convert(date, (replace (d.[rssi-due-date], ' ', '')), 101) > try_convert (date, (replace (d.[RSSI-CUR-DUE-DTE],'+','')),101) then '$0.00'
+	else d.[RSSI-BILL-TOTAL-DUE]
+end as newrssibilltotaldue,
+substring (replace (d.[RSSI-RATE-CHG-DATE], ' 01', ''), 3, 1)+substring ( replace (d.[RSSI-RATE-CHG-DATE], ' 01', ''), 4, 1) + '/' +substring ( replace (d.[RSSI-RATE-CHG-DATE], ' 01', ''), 5, 1)+substring ( replace (d.[RSSI-RATE-CHG-DATE], ' 01', ''), 6, 1)+ '/' +substring ( replace (d.[RSSI-RATE-CHG-DATE], ' 01', ''), 1, 1)+substring ( replace (d.[RSSI-RATE-CHG-DATE], ' 01', ''), 2, 1) as newintratechange,
+substring ( d.[RSSI-MAT-DATE], 6, 1)+substring (d.[RSSI-MAT-DATE], 7, 1) + '/' +substring (d.[RSSI-MAT-DATE], 8, 1)+substring (d.[RSSI-MAT-DATE], 9, 1)+ '/' +substring (d.[RSSI-MAT-DATE], 4, 1)+substring (d.[RSSI-MAT-DATE], 5, 1) as rssimatdate,
+case
+	when d.[RSSI-RATE-CHG-DATE] = ' 00000000' then substring ( d.[RSSI-MAT-DATE], 6, 1)+substring (d.[RSSI-MAT-DATE], 7, 1) + '/' +substring (d.[RSSI-MAT-DATE], 8, 1)+substring (d.[RSSI-MAT-DATE], 9, 1)+ '/' +substring (d.[RSSI-MAT-DATE], 4, 1)+substring (d.[RSSI-MAT-DATE], 5, 1) else  substring ((replace ([RSSI-RATE-CHG-DATE],'+','')),6, 1)+substring ((replace ([RSSI-RATE-CHG-DATE],'+','')),7, 1) + '/' +substring ((replace ([RSSI-RATE-CHG-DATE],'+','')), 8, 1)+substring ((replace ([RSSI-RATE-CHG-DATE],'+','')), 9, 1)+ '/' +substring ((replace ([RSSI-RATE-CHG-DATE],'+','')), 4, 1)+substring ((replace ([RSSI-RATE-CHG-DATE],'+','')),5, 1) end as interestrateuntildate,
+d.[rssi-pymts-due-amt] as NEW_F6_Past_Due_Payments,
+i.[rssi-cb-cbwr1-typ] as coborrowerrec,
+i.[RSSI-CSII-CBWR1-VERIFIED] as coborrowerverified,
+i.[rssi-cb-cbwr1-bill-stmnt] as coborrowerbillstmnt,
+i.[rssi-cb-cbwr1-f] as coborrowername,
+i.[rssi-cb-cbwr1-adrs1] as coborroweraddr1,
+i.[rssi-cb-cbwr1-adrs2] as coborroweraddr2,
+i.[rssi-cb-cbwr1-city] as coborrowercity,
+i.[rssi-cb-cbwr1-state] as coborrowerstate,
+i.[rssi-cb-cbwr1-zip] as coborrowerzip,
+datediff(dd, try_convert (date, d.[rssi-run-date], 112), try_convert(date, d.[RSSI-MAT-DATE], 101)) as maturitydateyears,
+case
+	when try_convert (date, d.[rssi-run-date], 112) between try_convert(date, substring(k.[rssi-lci-freeze-from-dt], 2, 6), 101) and try_convert(date, substring(k.[RSSI-LCI-FREEZE-TO-DT], 2, 6), 101) then 'Y'
+	else 'N'
+end as suspendlatefeelanguage,
+g.[RSSI-UNCOLL-ESC-SHORT],
+substring ( d.[RSSI-AUDIT-DATE], 6, 1)+substring (d.[RSSI-AUDIT-DATE], 7, 1) + '/' +substring (d.[RSSI-AUDIT-DATE], 8, 1)+substring (d.[RSSI-AUDIT-DATE], 9, 1)+ '/' +substring (d.[RSSI-AUDIT-DATE], 4, 1)+substring (d.[RSSI-AUDIT-DATE], 5, 1) as [RSSI-AUDIT-DATE],
+case when [RSSI-LIP-LA-DATE] = ' 000000' then 'Y' else 'N' end as tax_insert,
+case when d.[RSSI-EMAIL-BILL-IND] = 'Y' and d.[rssi-usr-36] = 'Y' and substring(d.[rssi-run-date],4,2)  in ('02','04','06','08','10','12') then 'V3'
+when d.[RSSI-EMAIL-BILL-IND] = 'Y' and d.[rssi-usr-36] = 'Y' and substring(d.[rssi-run-date],4,2)  in ('01','03','05','07','09','11') then 'V2'
+when d.[RSSI-EMAIL-BILL-IND] = 'Y' and d.[rssi-usr-36] = 'N' or d.[RSSI-EMAIL-BILL-IND] = 'Y' and d.[rssi-usr-36] = '' then 'V1'
+else 'V4' end as onsertindicator,
+'' as 'SEQ-NO'
+
+from  Gateway_Header_Records a
+	join Gateway_B_Records b on b.[RSSI-INST] = a.[RSSI-INST] --and b.[FileName] = @filename
+	join Gateway_P_Records c on c.[RSSI-INST] = a.[RSSI-INST] --and c.[FileName] = @filename
+	join Gateway_A_records d on d.[RSSI-INST] = a.[RSSI-INST] --and d.[FileName] = @filename
+	join gateway_Z_Records z on z.[RSSI-INST] = a.[RSSI-INST] --and z.[FileName] = @filename
+	left join gateway_t_records e on e.[RSSI-INST] = a.[RSSI-INST] and e.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] and ltrim(rtrim(e.[rssi-log-tran]))  = '5740'  and  substring ( e.[rssi-tr-amt-to-evar],1,1) <> '-' and  substring ((replace (e.[RSSI-tr-amt],'+','')),PATINDEX ('%[^0]%',(replace (e.[RSSI-tr-amt],'+',''))+'0'), LEN((replace (e.[RSSI-tr-amt],'+','')))) <> '.00'  and e.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] /*and e.[FileName] = @filename*/
+	--left join gateway_f_records f on f.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and f.[RSSI-SEQ-NO] = e.[RSSI-SEQ-NO]
+	--join Mortgage_TandF_Reference x on ltrim(rtrim(x.[rssi-log-tran])) = ltrim(rtrim(e.[RSSI-LOG-TRAN])) 
+	left join Gateway_2_records g on g.[RSSI-INST] = a.[RSSI-INST] and g.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and g.[FileName] = @filename
+	left join Gateway_J_Records j on j.[rssi-inst] = a.[rssi-inst] and j.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and j.[FileName] = @filename
+	left join gateway_x_records k on k.[rssi-inst] = a.[rssi-inst] and k.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and k.[FileName] = @filename
+	left join gateway_u_records u on u.[RSSI-INST] = a.[RSSI-INST] and u.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and u.[FileName] = @filename
+	left join gateway_i_records i on i.[RSSI-INST] = a.[RSSI-INST] and i.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and i.[FileName] = @filename
+
+where /*and g.[FileName] = @filename*/ convert(numeric(18,0), d.[RSSI-NUM-DAYS-DELQ]) <= 45 and j.[RSSI-RCD-ID] is null  and d.[RSSI-LOSS-MIT-IND] <>'A' --AND d.[RSSI-EMAIL-BILL-IND] <> 'Y'  and d.[rssi-acct-no] like '%' + @account + '%'
+
+
+union
+
+select distinct 'T' as sortcode,
+d.[RSSI-ACCT-NO] as accountnumber,
+'' as recordtype1,
+'' as [RSSI-INST], 
+'' as  Account_Number_H,
+'' as recordtype2,
+'' as Account_Number_B,
+'' as [RSSI-INSTITUTION-NAME],
+'' as [RSSI-INST-ADRS-1],
+'' as [RSSI-INST-ADRS-2],
+'' as [RSSI-INST-CITY],
+'' as [RSSI-INST-STATE],
+'' as [RSSI-INST-ZIP],
+'' as recordtype3,
+'' as [rssi-inst],
+'' as [RSSI-N1MX-PLSS-ENTITY],
+'' as [RSSI-ENTY-NAME],
+'' as [RSSI-ENTY-ADRS-1],
+'' as [RSSI-ENTY-ADRS-2],
+'' as [RSSI-ENTY-CITY],
+'' as [RSSI-ENTY-STATE],
+'' as [RSSI-ENTY-ZIP],
+'' as recordtype4,
+'' as b3_statementdate,
+'' as c1_borrowername,
+'' as c2_secondaryname,
+'' as Mailing_Address_1,
+'' as Mailing_Address_2,
+'' as Mailing_Address_City,
+'' as Mailing_Address_State,
+'' as Mailing_Address_Zip,
+/*Summary Box*/
+'' as d1_accountnumber,
+'' as D2_Payment_Due_Date,
+'' as D3_Regular_Mortgage_Amount_Due,
+'' as D4_If_Payment_Received_After_Date,
+'' as D5_If_Payment_Received_After_Late_Fee_Amount,
+/*Account Information*/
+'' as E1_Property_Address_1,
+'' as E1_Property_Address_2,
+'' as E1_Property_Address_City,
+'' as E1_Property_Address_State,
+'' as E1_Property_Address_Zip,
+'' as E2_Outstanding_Principal_Balance,
+'' as E3_Interest_Rate_Until_Date,
+'' as E4_Interest_Rate,
+'' as 'PrePayment_Penalty',
+/*Explanation of Amount Due*/
+'' as [RSSI-P-I-PYMT],
+'' as [rssi-fees],
+'' as [rssi-late-chg-due],
+'' as [RSSI-CR-INS-PYMT],
+--d.[RSSI-P-I-PYMT] - d.[RSSI-INT-DUE] as Principal,
+'' as F2_Interest,
+'' as F3_Escrow,
+'' as F4_Regular_Monthly_Payment,
+--d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT] as total_fees_charged,
+'' as F6_Past_Due_Payments,
+--d.[RSSI-BILL-PMT-AMT] + (d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT]) +[RSSI-BILL-TOTAL-DUE] as Total_Amount_Due,
+/*Transaction Activity*/
+'' as G1_Transaction_Period_Begin_Date,
+'' as G2_Transaction_Period_End_Date,
+/*Transaction Amount*/
+'' as H1_Principal,
+'' as H2_Interest,
+'' as H3_Impound_Escrow,
+'' as H4_Fees,
+'' as H5_Late_Charges,
+'' as H6_Partial_Payment_Unapplied,
+'' as H7_Total,
+'' as H8_Principal_YTD,
+'' as H9_Interest_YTD,
+'' as H10_Impound_Escrow_YTD,
+'' as H11_Fees_YTD,
+'' as H12_Late_Charges_YTD,
+'' as H13_Partial_Payment_Unapplied_Total,
+--'' as --d.[rssi-prin-paid-ytd]+[RSSI-INT-PD-YTD]+[rssi-esc-paid-ytd]+[rssi-fees-paid-ytd]+[rssi-late-chg-paid-ytd]+ g.[RSSI_UNAP_BAL_TOT] as Total_YTD,
+/*Messaging*/
+'' as DL1_As_of_Date,
+'' as DL2_Day_Delinquent,
+'' as DL3_Past_Paid_Due_Date,
+'' as DL4_Past_Paid_Payment_Date_1,
+--case when d.[RSSI-PMT-PAID-DATE-1] <> '' then 'Fully paid on d.[rssi-pmt-paid-1-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_1,
+'' as DL5_Past_Paid_Payment_Due_Date_2,
+'' as DL6_Past_Paid_Payment_Paid_Date_2,
+--case when d.[RSSI-PMT-PAID-DATE-2] <> '' then 'Fully paid on d.[rssi-pmt-paid-2-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_2,
+'' as DL7_Past_Paid_Payment_Due_Date_3,
+'' as DL8_Past_Paid_Payment_Date_3,
+--case when d.[RSSI-PMT-PAID-DATE-3] <> '' then 'Fully paid on d.[rssi-pmt-paid-3-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_3,
+'' as DL9_Past_Paid_Payment_Due_Date_4,
+'' as DL10_Past_Paid_Payment_Date_4,
+--case when d.[RSSI-PMT-PAID-DATE-4] <> '' then 'Fully paid on d.[rssi-pmt-paid-4-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_4,
+'' as DL11_Past_Paid_Payment_Due_Date_5,
+'' as DL12_Past_Paid_Payment_Date_5,
+--case when d.[RSSI-PMT-PAID-DATE-5] <> '' then 'Fully paid on d.[rssi-pmt-paid-5-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_5,
+'' as DL13_Past_Paid_Payment_Due_Date_6,
+'' as DL14_Past_Paid_Payment_Date_6,
+--case when d.[RSSI-PMT-PAID-DATE-6] <> '' then 'Fully paid on d.[rssi-pmt-paid-6-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_6,
+'' as DL15_Current_Payment_Due_Date,
+'' as DL16_Current_Payment_Amount_Due,
+--d.[RSSI-BILL-PMT-AMT] + (d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT]) + d.[RSSI-BILL-TOTAL-DUE] as Total_Amount_To_Bring_Current,
+'' as K4_Account_Number,
+'' as K5_Payment_Due_Date,
+'' as K6_Regular_Mortgage_Amount_Due,
+'' as K7_Late_Fee_Amount,
+'' as K8_Late_Fee_Date,
+'' as K9_ACH_Draft_Date,
+'' as [rssi-rcd-id],
+'' as [rssi-b-chap],
+'' as [RSSI-NUM-DAYS-DELQ],
+'' as [RSSI-LMT-PROGRAM],
+'' as  lmtprogramdescription,
+'' as [RSSI-EMAIL-BILL-IND],
+'' as [RSSI-LCI-FREEZE-TO-DT], --use for conditional on showing suspend late fee language
+'' as [rssi-lci-freeze-from-dt],
+'' as [RSSI-RCD-ID],
+e.[rssi-tr-fee-code] as trfeecode,
+e.[rssi-log-tran] as transactioncode,
+substring ((replace (e.[rssi-tr-date],'+','')), 4, 1)+substring ((replace (e.[rssi-tr-date],'+','')), 5, 1) + '/' +substring ((replace (e.[rssi-tr-date],'+','')), 6, 1)+substring ((replace (e.[rssi-tr-date],'+','')), 7, 1)+ '/' +substring ((replace (e.[rssi-tr-date],'+','')), 2, 1)+substring ((replace (e.[rssi-tr-date],'+','')), 3, 1) as g3_transaction_date,
+e.[RSSI-TR-AMT],
+e.[rssi-tr-amt-to-prin],
+e.[rssi-tr-amt-to-int],
+e.[rssi-tr-amt-to-esc],
+e.[rssi-tr-amt-to-lc],
+e.[rssi-tr-amt-to-pvar],
+e.[rssi-tr-amt-to-ivar],
+e.[rssi-tr-amt-to-evar],
+e.[rssi-tr-amt-to-lvar],
+e.[RSSI-TR-FEE-DESC],
+(select distinct x.[chargedescription]
+	from Mortgage_TandF_Reference x
+		where ltrim(rtrim(x.[rssi-log-tran])) = ltrim(rtrim(e.[rssi-log-tran]))) as chargedescription,
+	case
+	when substring ((replace (e.[rssi-tr-amt-to-prin],'+','')),PATINDEX ('%[^0]%',(replace (e.[rssi-tr-amt-to-prin],'+',''))+'0'), LEN((replace (e.[rssi-tr-amt-to-prin],'+','')))) <> '.00' and e.[RSSI-LOG-TRAN] = '5740' then 'Principal Payment' 
+	when substring ((replace (e.[rssi-tr-amt-to-int] ,'+','')),PATINDEX ('%[^0]%',(replace (e.[rssi-tr-amt-to-int] ,'+',''))+'0'), LEN((replace (e.[rssi-tr-amt-to-int] ,'+','')))) <> '.00'  and e.[RSSI-LOG-TRAN] = '5740' then 'Interest Payment' 
+	when substring ((replace (e.[rssi-tr-amt-to-esc],'+','')),PATINDEX ('%[^0]%',(replace (e.[rssi-tr-amt-to-esc],'+',''))+'0'), LEN((replace (e.[rssi-tr-amt-to-esc],'+','')))) <> '.00' and e.[RSSI-LOG-TRAN] = '5740' then 'Escrow Payment' 
+	when substring ((replace (e.[rssi-tr-amt-to-lc] ,'+','')),PATINDEX ('%[^0]%',(replace (e.[rssi-tr-amt-to-lc],'+',''))+'0'), LEN((replace (e.[rssi-tr-amt-to-lc],'+','')))) <> '.00'  and e.[RSSI-LOG-TRAN] = '5740' then 'Late Charge Payment' 
+	when substring ((replace (e.[rssi-tr-amt-to-pvar] ,'+','')),PATINDEX ('%[^0]%',(replace (e.[rssi-tr-amt-to-pvar] ,'+',''))+'0'), LEN((replace (e.[rssi-tr-amt-to-pvar] ,'+','')))) <> '.00'  and e.[RSSI-LOG-TRAN] = '5740' then 'Credit Insurance Payment' 
+	when substring ((replace (e.[rssi-tr-amt-to-ivar]  ,'+','')),PATINDEX ('%[^0]%',(replace (e.[rssi-tr-amt-to-ivar]  ,'+',''))+'0'), LEN((replace (e.[rssi-tr-amt-to-ivar]  ,'+','')))) <> '.00'  and e.[RSSI-LOG-TRAN] = '5740' then 'Uncollected Interest Payment' 
+	when substring ((replace (e.[rssi-tr-amt-to-lvar]  ,'+','')),PATINDEX ('%[^0]%',(replace (e.[rssi-tr-amt-to-lvar]  ,'+',''))+'0'), LEN((replace (e.[rssi-tr-amt-to-lvar]  ,'+','')))) <> '.00'  and e.[RSSI-LOG-TRAN] = '5740' then 'Payment to Unapplied Late Charges'
+		when substring ((replace (e.[rssi-tr-amt-to-prin],'+','')),PATINDEX ('%[^0]%',(replace (e.[rssi-tr-amt-to-prin],'+',''))+'0'), LEN((replace (e.[rssi-tr-amt-to-prin],'+','')))) <> '.00'  and e.[RSSI-LOG-TRAN] = '5740' then 'Principal Payment' 
+when substring ((replace (e.[rssi-tr-amt-to-evar] ,'+','')),PATINDEX ('%[^0]%',(replace (e.[rssi-tr-amt-to-evar] ,'+',''))+'0'), LEN((replace (e.[rssi-tr-amt-to-evar]  ,'+','')))) <> '.00' and e.[RSSI-LOG-TRAN] = '5740' then 'Payment to Unapplied Funds'
+when substring ((replace (e.[rssi-tr-amt],'+','')),PATINDEX ('%[^0]%',(replace (e.[rssi-tr-amt],'+',''))+'0'), LEN((replace (e.[rssi-tr-amt],'+','')))) <>'.00' and  substring ((replace (e.[RSSI-TR-AMT-TO-EVAR-2] ,'+','')),PATINDEX ('%[^0]%',(replace (e.[RSSI-TR-AMT-TO-EVAR-2] ,'+',''))+'0'), LEN((replace (e.[RSSI-TR-AMT-TO-EVAR-2]  ,'+','')))) <>'.00' and e.[RSSI-LOG-TRAN] = '5740' then 'Payment to Unapplied Funds'
+when substring ((replace (e.[rssi-tr-amt],'+','')),PATINDEX ('%[^0]%',(replace (e.[rssi-tr-amt],'+',''))+'0'), LEN((replace (e.[rssi-tr-amt],'+','')))) <>'.00' and  substring ((replace (e.[RSSI-TR-AMT-TO-EVAR-3] ,'+','')),PATINDEX ('%[^0]%',(replace (e.[RSSI-TR-AMT-TO-EVAR-3] ,'+',''))+'0'), LEN((replace (e.[RSSI-TR-AMT-TO-EVAR-3]  ,'+','')))) <>'.00' and e.[RSSI-LOG-TRAN] = '5740' then 'Payment to Unapplied Funds'
+when substring ((replace (e.[rssi-tr-amt],'+','')),PATINDEX ('%[^0]%',(replace (e.[rssi-tr-amt],'+',''))+'0'), LEN((replace (e.[rssi-tr-amt],'+','')))) <>'.00' and  substring ((replace (e.[RSSI-TR-AMT-TO-EVAR-4] ,'+','')),PATINDEX ('%[^0]%',(replace (e.[RSSI-TR-AMT-TO-EVAR-4] ,'+',''))+'0'), LEN((replace (e.[RSSI-TR-AMT-TO-EVAR-4]  ,'+','')))) <>'.00' and e.[RSSI-LOG-TRAN] = '5740' then 'Payment to Unapplied Funds'
+when substring ((replace (e.[rssi-tr-amt],'+','')),PATINDEX ('%[^0]%',(replace (e.[rssi-tr-amt],'+',''))+'0'), LEN((replace (e.[rssi-tr-amt],'+','')))) <>'.00' and  substring ((replace (e.[RSSI-TR-AMT-TO-EVAR-5] ,'+','')),PATINDEX ('%[^0]%',(replace (e.[RSSI-TR-AMT-TO-EVAR-5] ,'+',''))+'0'), LEN((replace (e.[RSSI-TR-AMT-TO-EVAR-5]  ,'+','')))) <>'.00' and e.[RSSI-LOG-TRAN] = '5740' then 'Payment to Unapplied Funds'
+when   substring ((replace (e.[rssi-tr-amt],'+','')),PATINDEX ('%[^0]%',(replace (e.[rssi-tr-amt],'+',''))+'0'), LEN((replace (e.[rssi-tr-amt],'+','')))) <>'.00' and
+substring ((replace (e.[rssi-tr-amt-to-prin],'+','')),PATINDEX ('%[^0]%',(replace (e.[rssi-tr-amt-to-prin],'+',''))+'0'), LEN((replace (e.[rssi-tr-amt-to-prin],'+','')))) = '.00'
+and substring ((replace (e.[rssi-tr-amt-to-int] ,'+','')),PATINDEX ('%[^0]%',(replace (e.[rssi-tr-amt-to-int] ,'+',''))+'0'), LEN((replace (e.[rssi-tr-amt-to-int] ,'+','')))) = '.00'
+and substring ((replace (e.[rssi-tr-amt-to-esc],'+','')),PATINDEX ('%[^0]%',(replace (e.[rssi-tr-amt-to-esc],'+',''))+'0'), LEN((replace (e.[rssi-tr-amt-to-esc],'+','')))) = '.00'
+and substring ((replace (e.[rssi-tr-amt-to-lc] ,'+','')),PATINDEX ('%[^0]%',(replace (e.[rssi-tr-amt-to-lc],'+',''))+'0'), LEN((replace (e.[rssi-tr-amt-to-lc],'+','')))) ='.00'
+and substring ((replace (e.[rssi-tr-amt-to-pvar] ,'+','')),PATINDEX ('%[^0]%',(replace (e.[rssi-tr-amt-to-pvar] ,'+',''))+'0'), LEN((replace (e.[rssi-tr-amt-to-pvar] ,'+','')))) = '.00'
+and  substring ((replace (e.[rssi-tr-amt-to-ivar]  ,'+','')),PATINDEX ('%[^0]%',(replace (e.[rssi-tr-amt-to-ivar]  ,'+',''))+'0'), LEN((replace (e.[rssi-tr-amt-to-ivar]  ,'+','')))) = '.00'
+and substring ((replace (e.[rssi-tr-amt-to-evar] ,'+','')),PATINDEX ('%[^0]%',(replace (e.[rssi-tr-amt-to-evar] ,'+',''))+'0'), LEN((replace (e.[rssi-tr-amt-to-evar]  ,'+','')))) ='.00'
+and substring ((replace (e.[rssi-tr-amt-to-lvar]  ,'+','')),PATINDEX ('%[^0]%',(replace (e.[rssi-tr-amt-to-lvar]  ,'+',''))+'0'), LEN((replace (e.[rssi-tr-amt-to-lvar]  ,'+','')))) = '.00'
+and e.[RSSI-LOG-TRAN] = '5740' then  'Single Item Receipt'
+else 'Mortgage Payment'
+end as paymentdescription,
+'' as [RSSI-RCD-ID],
+'' as [RSSI-FD-ASSESS-AMT],
+'' as [RSSI-FD-FEE-DESC],
+'' as g3_fee_assess_date,
+'' as g3_fee_coll_date,
+'' as agency,
+'' as phonenumber,
+'' as nmlsnumber,
+'' as achindicator,
+--NEW Due Date Logic as of 2/19/2019 - If RSSI-DUE-DATE > RSSI-CUR-DUE-DTE Set Amount Due to $0.00
+'' as rssiduedatecheck,
+'' as rssicurduedatecheck,
+'' as newamountdue,
+'' as newrssipipymt,
+'' as newrssiintdue,
+'' as newrssiescpymt,
+'' as newrssibillpmtamt,
+'' as newrssifees,
+'' as newrssilatechgdue,
+'' as newrssicrinspymnt,
+'' as newrssibilltotaldue,
+'' as newintratechange,
+'' as rssimatdate,
+'' as interestrateuntildate,
+'' as NEW_F6_Past_Due_Payments,
+'' as coborrowerrec,
+'' as coborrowerverified,
+'' as coborrowerbillstmnt,
+'' as coborrowername,
+'' as coborroweraddr1,
+'' as coborroweraddr2,
+'' as coborrowercity,
+'' as coborrowerstate,
+'' as coborrowerzip,
+'' as maturitydateyears,
+'' as suspendlatefeelanguage,
+'' as [RSSI-UNCOLL-ESC-SHORT],
+'' as [RSSI-AUDIT-DATE],
+'' as tax_insert,
+'' as onsertindicator,
+e.[RSSI-SEQ-NO]
+
+from  Gateway_Header_Records a
+	join Gateway_B_Records b on b.[RSSI-INST] = a.[RSSI-INST] --and b.[FileName] = @filename
+	join Gateway_P_Records c on c.[RSSI-INST] = a.[RSSI-INST] --and c.[FileName] = @filename
+	join Gateway_A_records d on d.[RSSI-INST] = a.[RSSI-INST] --and d.[FileName] = @filename
+	join gateway_Z_Records z on z.[RSSI-INST] = a.[RSSI-INST] --and z.[FileName] = @filename
+	join gateway_t_records e on e.[RSSI-INST] = a.[RSSI-INST] and e.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] and ltrim(rtrim(e.[rssi-log-tran]))  = '5740' /*and  substring ( e.[rssi-tr-amt-to-evar],1,1) <> '-'*/ and  substring ((replace (e.[RSSI-tr-amt],'+','')),PATINDEX ('%[^0]%',(replace (e.[RSSI-tr-amt],'+',''))+'0'), LEN((replace (e.[RSSI-tr-amt],'+','')))) <> '.00'  and e.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] /*and e.[FileName] = @filename*/
+	--left join gateway_f_records f on f.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and f.[RSSI-SEQ-NO] = e.[RSSI-SEQ-NO]
+	join Mortgage_TandF_Reference x on ltrim(rtrim(x.[rssi-log-tran])) = ltrim(rtrim(e.[RSSI-LOG-TRAN])) 
+	left join Gateway_2_records g on g.[RSSI-INST] = a.[RSSI-INST] and g.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and g.[FileName] = @filename
+	left join Gateway_J_Records j on j.[rssi-inst] = a.[rssi-inst] and j.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and j.[FileName] = @filename
+	left join gateway_x_records k on k.[rssi-inst] = a.[rssi-inst] and k.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and k.[FileName] = @filename
+	left join gateway_u_records u on u.[RSSI-INST] = a.[RSSI-INST] and u.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and u.[FileName] = @filename
+	left join gateway_i_records i on i.[RSSI-INST] = a.[RSSI-INST] and i.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and i.[FileName] = @filename
+
+where /*and g.[FileName] = @filename*/ convert(numeric(18,0), d.[RSSI-NUM-DAYS-DELQ]) <= 45 and j.[RSSI-RCD-ID] is null   and d.[RSSI-LOSS-MIT-IND] <>'A'--AND d.[RSSI-EMAIL-BILL-IND] <> 'Y'  and d.[rssi-acct-no] like '%' + @account + '%'
+
+
+union
+
+select distinct 'T' as sortcode,
+d.[RSSI-ACCT-NO] as accountnumber,
+'' as recordtype1,
+'' as [RSSI-INST], 
+'' as  Account_Number_H,
+'' as recordtype2,
+'' as Account_Number_B,
+'' as [RSSI-INSTITUTION-NAME],
+'' as [RSSI-INST-ADRS-1],
+'' as [RSSI-INST-ADRS-2],
+'' as [RSSI-INST-CITY],
+'' as [RSSI-INST-STATE],
+'' as [RSSI-INST-ZIP],
+'' as recordtype3,
+'' as [rssi-inst],
+'' as [RSSI-N1MX-PLSS-ENTITY],
+'' as [RSSI-ENTY-NAME],
+'' as [RSSI-ENTY-ADRS-1],
+'' as [RSSI-ENTY-ADRS-2],
+'' as [RSSI-ENTY-CITY],
+'' as [RSSI-ENTY-STATE],
+'' as [RSSI-ENTY-ZIP],
+'' as recordtype4,
+'' as b3_statementdate,
+'' as c1_borrowername,
+'' as c2_secondaryname,
+'' as Mailing_Address_1,
+'' as Mailing_Address_2,
+'' as Mailing_Address_City,
+'' as Mailing_Address_State,
+'' as Mailing_Address_Zip,
+/*Summary Box*/
+'' as d1_accountnumber,
+'' as D2_Payment_Due_Date,
+'' as D3_Regular_Mortgage_Amount_Due,
+'' as D4_If_Payment_Received_After_Date,
+'' as D5_If_Payment_Received_After_Late_Fee_Amount,
+/*Account Information*/
+'' as E1_Property_Address_1,
+'' as E1_Property_Address_2,
+'' as E1_Property_Address_City,
+'' as E1_Property_Address_State,
+'' as E1_Property_Address_Zip,
+'' as E2_Outstanding_Principal_Balance,
+'' as E3_Interest_Rate_Until_Date,
+'' as E4_Interest_Rate,
+'' as 'PrePayment_Penalty',
+/*Explanation of Amount Due*/
+'' as [RSSI-P-I-PYMT],
+'' as [rssi-fees],
+'' as [rssi-late-chg-due],
+'' as [RSSI-CR-INS-PYMT],
+--d.[RSSI-P-I-PYMT] - d.[RSSI-INT-DUE] as Principal,
+'' as F2_Interest,
+'' as F3_Escrow,
+'' as F4_Regular_Monthly_Payment,
+--d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT] as total_fees_charged,
+'' as F6_Past_Due_Payments,
+--d.[RSSI-BILL-PMT-AMT] + (d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT]) +[RSSI-BILL-TOTAL-DUE] as Total_Amount_Due,
+/*Transaction Activity*/
+'' as G1_Transaction_Period_Begin_Date,
+'' as G2_Transaction_Period_End_Date,
+/*Transaction Amount*/
+'' as H1_Principal,
+'' as H2_Interest,
+'' as H3_Impound_Escrow,
+'' as H4_Fees,
+'' as H5_Late_Charges,
+'' as H6_Partial_Payment_Unapplied,
+'' as H7_Total,
+'' as H8_Principal_YTD,
+'' as H9_Interest_YTD,
+'' as H10_Impound_Escrow_YTD,
+'' as H11_Fees_YTD,
+'' as H12_Late_Charges_YTD,
+'' as H13_Partial_Payment_Unapplied_Total,
+--'' as --d.[rssi-prin-paid-ytd]+[RSSI-INT-PD-YTD]+[rssi-esc-paid-ytd]+[rssi-fees-paid-ytd]+[rssi-late-chg-paid-ytd]+ g.[RSSI_UNAP_BAL_TOT] as Total_YTD,
+/*Messaging*/
+'' as DL1_As_of_Date,
+'' as DL2_Day_Delinquent,
+'' as DL3_Past_Paid_Due_Date,
+'' as DL4_Past_Paid_Payment_Date_1,
+--case when d.[RSSI-PMT-PAID-DATE-1] <> '' then 'Fully paid on d.[rssi-pmt-paid-1-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_1,
+'' as DL5_Past_Paid_Payment_Due_Date_2,
+'' as DL6_Past_Paid_Payment_Paid_Date_2,
+--case when d.[RSSI-PMT-PAID-DATE-2] <> '' then 'Fully paid on d.[rssi-pmt-paid-2-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_2,
+'' as DL7_Past_Paid_Payment_Due_Date_3,
+'' as DL8_Past_Paid_Payment_Date_3,
+--case when d.[RSSI-PMT-PAID-DATE-3] <> '' then 'Fully paid on d.[rssi-pmt-paid-3-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_3,
+'' as DL9_Past_Paid_Payment_Due_Date_4,
+'' as DL10_Past_Paid_Payment_Date_4,
+--case when d.[RSSI-PMT-PAID-DATE-4] <> '' then 'Fully paid on d.[rssi-pmt-paid-4-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_4,
+'' as DL11_Past_Paid_Payment_Due_Date_5,
+'' as DL12_Past_Paid_Payment_Date_5,
+--case when d.[RSSI-PMT-PAID-DATE-5] <> '' then 'Fully paid on d.[rssi-pmt-paid-5-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_5,
+'' as DL13_Past_Paid_Payment_Due_Date_6,
+'' as DL14_Past_Paid_Payment_Date_6,
+--case when d.[RSSI-PMT-PAID-DATE-6] <> '' then 'Fully paid on d.[rssi-pmt-paid-6-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_6,
+'' as DL15_Current_Payment_Due_Date,
+'' as DL16_Current_Payment_Amount_Due,
+--d.[RSSI-BILL-PMT-AMT] + (d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT]) + d.[RSSI-BILL-TOTAL-DUE] as Total_Amount_To_Bring_Current,
+'' as K4_Account_Number,
+'' as K5_Payment_Due_Date,
+'' as K6_Regular_Mortgage_Amount_Due,
+'' as K7_Late_Fee_Amount,
+'' as K8_Late_Fee_Date,
+'' as K9_ACH_Draft_Date,
+'' as [rssi-rcd-id],
+'' as [rssi-b-chap],
+'' as [RSSI-NUM-DAYS-DELQ],
+'' as [RSSI-LMT-PROGRAM],
+'' as  lmtprogramdescription,
+'' as [RSSI-EMAIL-BILL-IND],
+'' as [RSSI-LCI-FREEZE-TO-DT], --use for conditional on showing suspend late fee language
+'' as [rssi-lci-freeze-from-dt],
+'' as [RSSI-RCD-ID],
+'' as trfeecode,
+'' as transactioncode,
+substring ((replace (f.[RSSI-FD-ASSESS-DATE],'+','')), 5, 1)+substring ((replace (f.[RSSI-FD-ASSESS-DATE],'+','')), 6, 1) + '/' +substring ((replace (f.[RSSI-FD-ASSESS-DATE],'+','')), 7, 1)+substring ((replace (f.[RSSI-FD-ASSESS-DATE],'+','')), 8, 1)+ '/' +substring ((replace (f.[RSSI-FD-ASSESS-DATE],'+','')), 3, 1)+substring ((replace (f.[RSSI-FD-ASSESS-DATE],'+','')), 4, 1) as g3_transaction_date,
+f.[rssi-fd-assess-amt] as [RSSI-TR-AMT],
+'' as [rssi-tr-amt-to-prin],
+'' as [rssi-tr-amt-to-int],
+'' as [rssi-tr-amt-to-esc],
+'' as [rssi-tr-amt-to-lc],
+'' as [rssi-tr-amt-to-pvar],
+'' as [rssi-tr-amt-to-ivar],
+'' as [rssi-tr-amt-to-evar],
+'' as [rssi-tr-amt-to-lvar],
+'' as [RSSI-TR-FEE-DESC],
+case when f.[rssi-fd-fee-desc] = 'ACCRUED LATE CHARGE' then 'Accrued Late Charge' end as chargedescription,
+'' as paymentdescription,
+'' as [RSSI-RCD-ID],
+'' as [RSSI-FD-ASSESS-AMT],
+'' as [RSSI-FD-FEE-DESC],
+'' as g3_fee_assess_date,
+'' as g3_fee_coll_date,
+'' as agency,
+'' as phonenumber,
+'' as nmlsnumber,
+'' as achindicator,
+--NEW Due Date Logic as of 2/19/2019 - If RSSI-DUE-DATE > RSSI-CUR-DUE-DTE Set Amount Due to $0.00
+'' as rssiduedatecheck,
+'' as rssicurduedatecheck,
+'' as newamountdue,
+'' as newrssipipymt,
+'' as newrssiintdue,
+'' as newrssiescpymt,
+'' as newrssibillpmtamt,
+'' as newrssifees,
+'' as newrssilatechgdue,
+'' as newrssicrinspymnt,
+'' as newrssibilltotaldue,
+'' as newintratechange,
+'' as rssimatdate,
+'' as interestrateuntildate,
+'' as NEW_F6_Past_Due_Payments,
+'' as coborrowerrec,
+'' as coborrowerverified,
+'' as coborrowerbillstmnt,
+'' as coborrowername,
+'' as coborroweraddr1,
+'' as coborroweraddr2,
+'' as coborrowercity,
+'' as coborrowerstate,
+'' as coborrowerzip,
+'' as maturitydateyears,
+'' as suspendlatefeelanguage,
+'' as [RSSI-UNCOLL-ESC-SHORT],
+'' as [RSSI-AUDIT-DATE],
+'' as tax_insert,
+'' as onsertindicator,
+'' as 'SEQ-NO'
+
+from  Gateway_Header_Records a
+	join Gateway_B_Records b on b.[RSSI-INST] = a.[RSSI-INST] --and b.[FileName] = @filename
+	join Gateway_P_Records c on c.[RSSI-INST] = a.[RSSI-INST] --and c.[FileName] = @filename
+	join Gateway_A_records d on d.[RSSI-INST] = a.[RSSI-INST] --and d.[FileName] = @filename
+	join gateway_Z_Records z on z.[RSSI-INST] = a.[RSSI-INST] --and z.[FileName] = @filename
+	--join gateway_t_records e on e.[RSSI-INST] = a.[RSSI-INST] and e.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] and 
+		--ltrim(rtrim(e.[rssi-log-tran])) in ('5620', '5710', '5730',  '5742', '5745', '5750',  '5770', '5771', '5775', '5776', '5850') /*and e.[FileName] = @filename*/
+	join gateway_f_records f on f.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and f.[RSSI-SEQ-NO] = e.[RSSI-SEQ-NO]
+	--join Mortgage_TandF_Reference x on ltrim(rtrim(x.[rssi-log-tran])) = ltrim(rtrim(e.[RSSI-LOG-TRAN])) 
+	left join Gateway_2_records g on g.[RSSI-INST] = a.[RSSI-INST] and g.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and g.[FileName] = @filename
+	left join Gateway_J_Records j on j.[rssi-inst] = a.[rssi-inst] and j.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and j.[FileName] = @filename
+	left join gateway_x_records k on k.[rssi-inst] = a.[rssi-inst] and k.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and k.[FileName] = @filename
+	left join gateway_u_records u on u.[RSSI-INST] = a.[RSSI-INST] and u.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and u.[FileName] = @filename
+	left join gateway_i_records i on i.[RSSI-INST] = a.[RSSI-INST] and i.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] and ltrim(rtrim(i.[rssi-cb-cbwr1-bill-stmnt])) <> 'O' --and i.[FileName] = @filename
+
+where /*and g.[FileName] = @filename*/ convert(numeric(18,0), d.[RSSI-NUM-DAYS-DELQ]) <= 45 and j.[RSSI-RCD-ID] is null   and d.[RSSI-LOSS-MIT-IND] <>'A'--AND d.[RSSI-EMAIL-BILL-IND] <> 'Y'  and d.[rssi-acct-no] like '%' + @account + '%'
+		and f.[rssi-fd-fee-desc] = 'Accrued Late Charge' 
+		and try_convert(date, (replace (f.[RSSI-FD-ASSESS-DATE], ' 1', '')), 101) > try_convert(date, d.[rssi-lip-la-date], 101) 
+		and try_convert(date, (replace (f.[RSSI-FD-ASSESS-DATE], ' 1', '')), 101) <= try_convert(date, d.[rssi-run-date], 101)
+
+
+union
+
+select distinct 'Z' as sortcode,
+d.[RSSI-ACCT-NO] as accountnumber,
+'' as recordtype1,
+'' as [RSSI-INST], 
+'' as  Account_Number_H,
+'' as recordtype2,
+'' as Account_Number_B,
+'' as [RSSI-INSTITUTION-NAME],
+'' as [RSSI-INST-ADRS-1],
+'' as [RSSI-INST-ADRS-2],
+'' as [RSSI-INST-CITY],
+'' as [RSSI-INST-STATE],
+'' as [RSSI-INST-ZIP],
+'' as recordtype3,
+'' as [rssi-inst],
+'' as [RSSI-N1MX-PLSS-ENTITY],
+'' as [RSSI-ENTY-NAME],
+'' as [RSSI-ENTY-ADRS-1],
+'' as [RSSI-ENTY-ADRS-2],
+'' as [RSSI-ENTY-CITY],
+'' as [RSSI-ENTY-STATE],
+'' as [RSSI-ENTY-ZIP],
+'' as recordtype4,
+'' as b3_statementdate,
+'' as c1_borrowername,
+'' as c2_secondaryname,
+'' as Mailing_Address_1,
+'' as Mailing_Address_2,
+'' as Mailing_Address_City,
+'' as Mailing_Address_State,
+'' as Mailing_Address_Zip,
+/*Summary Box*/
+z.[rssi-acct-no] as d1_accountnumber,
+'' as D2_Payment_Due_Date,
+'' as D3_Regular_Mortgage_Amount_Due,
+'' as D4_If_Payment_Received_After_Date,
+'' as D5_If_Payment_Received_After_Late_Fee_Amount,
+/*Account Information*/
+'' as E1_Property_Address_1,
+'' as E1_Property_Address_2,
+'' as E1_Property_Address_City,
+'' as E1_Property_Address_State,
+'' as E1_Property_Address_Zip,
+'' as E2_Outstanding_Principal_Balance,
+'' as E3_Interest_Rate_Until_Date,
+'' as E4_Interest_Rate,
+'' as 'PrePayment_Penalty',
+/*Explanation of Amount Due*/
+'' as [RSSI-P-I-PYMT],
+'' as [rssi-fees],
+'' as [rssi-late-chg-due],
+'' as [RSSI-CR-INS-PYMT],
+--d.[RSSI-P-I-PYMT] - d.[RSSI-INT-DUE] as Principal,
+'' as F2_Interest,
+'' as F3_Escrow,
+'' as F4_Regular_Monthly_Payment,
+--d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT] as total_fees_charged,
+'' as F6_Past_Due_Payments,
+--d.[RSSI-BILL-PMT-AMT] + (d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT]) +[RSSI-BILL-TOTAL-DUE] as Total_Amount_Due,
+/*Transaction Activity*/
+'' as G1_Transaction_Period_Begin_Date,
+'' as G2_Transaction_Period_End_Date,
+/*Transaction Amount*/
+'' as H1_Principal,
+'' as H2_Interest,
+'' as H3_Impound_Escrow,
+'' as H4_Fees,
+'' as H5_Late_Charges,
+'' as H6_Partial_Payment_Unapplied,
+'' as H7_Total,
+'' as H8_Principal_YTD,
+'' as H9_Interest_YTD,
+'' as H10_Impound_Escrow_YTD,
+'' as H11_Fees_YTD,
+'' as H12_Late_Charges_YTD,
+'' as H13_Partial_Payment_Unapplied_Total,
+--'' as --d.[rssi-prin-paid-ytd]+[RSSI-INT-PD-YTD]+[rssi-esc-paid-ytd]+[rssi-fees-paid-ytd]+[rssi-late-chg-paid-ytd]+ g.[RSSI_UNAP_BAL_TOT] as Total_YTD,
+/*Messaging*/
+'' as DL1_As_of_Date,
+'' as DL2_Day_Delinquent,
+'' as DL3_Past_Paid_Due_Date,
+'' as DL4_Past_Paid_Payment_Date_1,
+--case when d.[RSSI-PMT-PAID-DATE-1] <> '' then 'Fully paid on d.[rssi-pmt-paid-1-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_1,
+'' as DL5_Past_Paid_Payment_Due_Date_2,
+'' as DL6_Past_Paid_Payment_Paid_Date_2,
+--case when d.[RSSI-PMT-PAID-DATE-2] <> '' then 'Fully paid on d.[rssi-pmt-paid-2-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_2,
+'' as DL7_Past_Paid_Payment_Due_Date_3,
+'' as DL8_Past_Paid_Payment_Date_3,
+--case when d.[RSSI-PMT-PAID-DATE-3] <> '' then 'Fully paid on d.[rssi-pmt-paid-3-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_3,
+'' as DL9_Past_Paid_Payment_Due_Date_4,
+'' as DL10_Past_Paid_Payment_Date_4,
+--case when d.[RSSI-PMT-PAID-DATE-4] <> '' then 'Fully paid on d.[rssi-pmt-paid-4-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_4,
+'' as DL11_Past_Paid_Payment_Due_Date_5,
+'' as DL12_Past_Paid_Payment_Date_5,
+--case when d.[RSSI-PMT-PAID-DATE-5] <> '' then 'Fully paid on d.[rssi-pmt-paid-5-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_5,
+'' as DL13_Past_Paid_Payment_Due_Date_6,
+'' as DL14_Past_Paid_Payment_Date_6,
+--case when d.[RSSI-PMT-PAID-DATE-6] <> '' then 'Fully paid on d.[rssi-pmt-paid-6-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_6,
+'' as DL15_Current_Payment_Due_Date,
+'' as DL16_Current_Payment_Amount_Due,
+--d.[RSSI-BILL-PMT-AMT] + (d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT]) + d.[RSSI-BILL-TOTAL-DUE] as Total_Amount_To_Bring_Current,
+'' as K4_Account_Number,
+'' as K5_Payment_Due_Date,
+'' as K6_Regular_Mortgage_Amount_Due,
+'' as K7_Late_Fee_Amount,
+'' as K8_Late_Fee_Date,
+'' as K9_ACH_Draft_Date,
+'' as [rssi-rcd-id],
+'' as [rssi-b-chap],
+'' as [RSSI-NUM-DAYS-DELQ],
+'' as [RSSI-LMT-PROGRAM],
+'' as  lmtprogramdescription,
+'' as [RSSI-EMAIL-BILL-IND],
+'' as [RSSI-LCI-FREEZE-TO-DT], --use for conditional on showing suspend late fee language
+'' as [rssi-lci-freeze-from-dt],
+'' as [RSSI-RCD-ID],
+'' as trfeecode,
+'' as transactioncode,
+'' as g3_transaction_date,
+'' as [RSSI-TR-AMT],
+'' as [rssi-tr-amt-to-prin],
+'' as [rssi-tr-amt-to-int],
+'' as [rssi-tr-amt-to-esc],
+'' as [rssi-tr-amt-to-lc],
+'' as [rssi-tr-amt-to-pvar],
+'' as [rssi-tr-amt-to-ivar],
+'' as [rssi-tr-amt-to-evar],
+'' as [rssi-tr-amt-to-lvar],
+'' as [RSSI-TR-FEE-DESC],
+'' as [chargedescription],
+'' as [paymentdescription],
+'' as [RSSI-RCD-ID],
+'' as [RSSI-FD-ASSESS-AMT],
+'' as [RSSI-FD-FEE-DESC],
+'' as g3_fee_assess_date,
+'' as g3_fee_coll_date,
+'' as agency,
+'' as phonenumber,
+'' as nmlsnumber,
+'' as achindicator,
+--NEW Due Date Logic as of 2/19/2019 - If RSSI-DUE-DATE > RSSI-CUR-DUE-DTE Set Amount Due to $0.00
+'' as rssiduedatecheck,
+'' as rssicurduedatecheck,
+'' as newamountdue,
+'' as newrssipipymt,
+'' as newrssiintdue,
+'' as newrssiescpymt,
+'' as newrssibillpmtamt,
+'' as newrssifees,
+'' as newrssilatechgdue,
+'' as newrssicrinspymnt,
+'' as newrssibilltotaldue,
+'' as newintratechange,
+'' as rssimatdate,
+'' as interestrateuntildate,
+''as NEW_F6_Past_Due_Payments,
+'' as coborrowerrec,
+'' as coborrowerverified,
+'' as coborrowerbillstmnt,
+'' as coborrowername,
+'' as coborroweraddr1,
+'' as coborroweraddr2,
+'' as coborrowercity,
+'' as coborrowerstate,
+'' as coborrowerzip,
+'' as maturitydateyears,
+'' as suspendlatefeelanguage,
+'' as [RSSI-UNCOLL-ESC-SHORT],
+'' as [RSSI-AUDIT-DATE],
+'' as tax_insert,
+'' as onsertindicator,
+'' as 'SEQ-NO'
+
+from  Gateway_Header_Records a
+	join Gateway_B_Records b on b.[RSSI-INST] = a.[RSSI-INST] --and b.[FileName] = @filename
+	join Gateway_P_Records c on c.[RSSI-INST] = a.[RSSI-INST] --and c.[FileName] = @filename
+	join Gateway_A_records d on d.[RSSI-INST] = a.[RSSI-INST] --and d.[FileName] = @filename
+	join gateway_Z_Records z on z.[RSSI-INST] = a.[RSSI-INST] --and z.[FileName] = @filename
+	left join gateway_t_records e on e.[RSSI-INST] = a.[RSSI-INST] and e.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] and ltrim(rtrim(e.[rssi-log-tran]))  = '5740' and  substring ( e.[rssi-tr-amt-to-evar],1,1) <> '-' and  substring ((replace (e.[RSSI-tr-amt],'+','')),PATINDEX ('%[^0]%',(replace (e.[RSSI-tr-amt],'+',''))+'0'), LEN((replace (e.[RSSI-tr-amt],'+','')))) <> '.00'  and e.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] /*and e.[FileName] = @filename*/
+	--left join gateway_f_records f on f.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and f.[RSSI-SEQ-NO] = e.[RSSI-SEQ-NO]
+	--join Mortgage_TandF_Reference x on ltrim(rtrim(x.[rssi-log-tran])) = ltrim(rtrim(e.[RSSI-LOG-TRAN])) 
+	left join Gateway_2_records g on g.[RSSI-INST] = a.[RSSI-INST] and g.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and g.[FileName] = @filename
+	left join Gateway_J_Records j on j.[rssi-inst] = a.[rssi-inst] and j.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and j.[FileName] = @filename
+	left join gateway_x_records k on k.[rssi-inst] = a.[rssi-inst] and k.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and k.[FileName] = @filename
+	left join gateway_u_records u on u.[RSSI-INST] = a.[RSSI-INST] and u.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and u.[FileName] = @filename
+	left join gateway_i_records i on i.[RSSI-INST] = a.[RSSI-INST] and i.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and i.[FileName] = @filename
+
+where /*and g.[FileName] = @filename*/ convert(numeric(18,0), d.[RSSI-NUM-DAYS-DELQ]) <= 45 and j.[RSSI-RCD-ID] is null   and d.[RSSI-LOSS-MIT-IND] <>'A'--AND d.[RSSI-EMAIL-BILL-IND] <> 'Y'  and d.[rssi-acct-no] like '%' + @account + '%'
+
+
+--order by accountnumber, sortcode, g3_transaction_date
+
+union
+
+--General Statement Layout Transaction Code Only
+
+select distinct 'H' as sortcode,
+d.[RSSI-ACCT-NO] as accountnumber,
+'' as recordtype1,
+a.[RSSI-INST], 
+a.[RSSI-ACCT-NO] as Account_Number_H,
+'' as recordtype2,
+b.[RSSI-ACCT-NO] as Account_Number_B,
+b.[RSSI-INSTITUTION-NAME],
+b.[RSSI-INST-ADRS-1],
+b.[RSSI-INST-ADRS-2],
+b.[RSSI-INST-CITY],
+b.[RSSI-INST-STATE],
+b.[RSSI-INST-ZIP],
+'' as recordtype3,
+c.[rssi-inst],
+c.[RSSI-N1MX-PLSS-ENTITY],
+c.[RSSI-ENTY-NAME],
+c.[RSSI-ENTY-ADRS-1],
+c.[RSSI-ENTY-ADRS-2],
+c.[RSSI-ENTY-CITY],
+c.[RSSI-ENTY-STATE],
+c.[RSSI-ENTY-ZIP],
+'' as recordtype4,
+substring ( d.[rssi-run-date], 4, 1)+substring (d.[rssi-run-date], 5, 1) + '/' +substring (d.[rssi-run-date], 6, 1)+substring (d.[rssi-run-date], 7, 1)+ '/' +substring (d.[rssi-run-date], 2, 1)+substring (d.[rssi-run-date], 3, 1) AS  b3_statementdate,
+d.[RSSI-PRIMARY-NAME] as c1_borrowername,
+d.[rssi-secondary-name] as c2_secondaryname,
+d.[RSSI-MAIL-ADRS-1] as Mailing_Address_1,
+d.[RSSI-MAIL-ADRS-2] AS Mailing_Address_2,
+d.[RSSI-MAIL-CITY] as Mailing_Address_City,
+d.[RSSI-MAIL-STATE] as Mailing_Address_State,
+d.[RSSI-MAIL-ZIP] as Mailing_Address_Zip,
+/*Summary Box*/
+d.[RSSI-ACCT-NO] as d1_accountnumber,
+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 3, 1)+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 4, 1) + '/' +substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 5, 1)+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 6, 1)+ '/' +substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 1, 1)+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 2, 1) AS  D2_Payment_Due_Date,
+case when 
+
+d.[RSSI-CLS-CD] not in (1,9) then '$0.00 ' else replace (d.[RSSI-BILL-PMT-AMT],'+','') end as D3_Regular_Mortgage_Amount_Due
+,
+substring ((replace (d.[RSSI-BILL-PMT-DTE],'+','')), 3, 1)+substring ((replace (d.[RSSI-BILL-PMT-DTE],'+','')), 4, 1) + '/' +substring ((replace (d.[RSSI-BILL-PMT-DTE],'+','')), 5, 1)+substring ((replace (d.[RSSI-BILL-PMT-DTE],'+','')), 6, 1)+ '/' +substring ((replace (d.[RSSI-BILL-PMT-DTE],'+','')), 1, 1)+substring ((replace (d.[RSSI-BILL-PMT-DTE],'+','')), 2, 1) as D4_If_Payment_Received_After_Date,
+d.[RSSI-LATE-CHG-AMT] as D5_If_Payment_Received_After_Late_Fee_Amount,
+/*Account Information*/
+d.[RSSI-APPL-ADRS-1] as E1_Property_Address_1,
+d.[RSSI-APPL-ADRS-2] as E1_Property_Address_2,
+d.[RSSI-APPL-CITY] as E1_Property_Address_City,
+d.[RSSI-APPL-STATE] as E1_Property_Address_State,
+d.[RSSI-APPL-ZIP] as E1_Property_Address_Zip,
+replace (d.[RSSI-PRIN-BAL],'+','') as E2_Outstanding_Principal_Balance,
+case when [rssi-rate-chg-date] = ' 00000000' then [rssi-rate-chg-date] else substring ((replace ([RSSI-RATE-CHG-DATE],'+','')),6, 1)+substring ((replace ([RSSI-RATE-CHG-DATE],'+','')),7, 1) + '/' +substring ((replace ([RSSI-RATE-CHG-DATE],'+','')), 8, 1)+substring ((replace ([RSSI-RATE-CHG-DATE],'+','')), 9, 1)+ '/' +substring ((replace ([RSSI-RATE-CHG-DATE],'+','')), 4, 1)+substring ((replace ([RSSI-RATE-CHG-DATE],'+','')),5, 1)end as E3_Interest_Rate_Until_Date,
+case when d.[RSSI-NOTE-RATE] = '0.00001' then '0.00000%'  else replace (d.[RSSI-NOTE-RATE], '+','') end as E4_Interest_Rate,
+'PrePayment_Penalty' as 'PrePayment_Penalty',
+/*Explanation of Amount Due*/
+d.[RSSI-P-I-PYMT],
+case 
+	when ltrim(rtrim(d.[rssi-fees])) = '+00000.00' then d.[rssi-fees]
+	else '+' + substring(d.[rssi-fees], 2, 10)
+end as [rssi-fees],
+d.[rssi-late-chg-due],
+d.[RSSI-CR-INS-PYMT],
+--d.[RSSI-P-I-PYMT] - d.[RSSI-INT-DUE] as Principal,
+replace (d.[rssi-int-due],'+','') as F2_Interest,
+replace (d.[RSSI-ESC-PYMT],'+','') as F3_Escrow,
+case when 
+
+d.[RSSI-CLS-CD] not in (1,9) then '$0.00 ' else replace (d.[RSSI-BILL-PMT-AMT],'+','') end as F4_Regular_Monthly_Payment,
+--d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT] as total_fees_charged,
+case when 
+
+d.[RSSI-CLS-CD] not in (1,9) then '$0.00 ' else replace (d.[RSSI-BILL-TOTAL-DUE],'+','') end as F6_Past_Due_Payments,
+--d.[RSSI-BILL-PMT-AMT] + (d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT]) +[RSSI-BILL-TOTAL-DUE] as Total_Amount_Due,
+/*Transaction Activity*/
+case when try_convert (date, d.[RSSI-LIP-LA-DATE], 101) = '' 
+then '' else substring ( d.[RSSI-LIP-LA-DATE], 4, 1)+substring (d.[RSSI-LIP-LA-DATE], 5, 1) + '/' +substring (d.[RSSI-LIP-LA-DATE], 6, 1)+substring (d.[RSSI-LIP-LA-DATE], 7, 1)+ '/' +substring (d.[RSSI-LIP-LA-DATE], 2, 1)+substring (d.[RSSI-LIP-LA-DATE], 3, 1)
+end  as G1_Transaction_Period_Begin_Date ,
+substring ( d.[RSSI-RUN-DATE], 4, 1)+substring (d.[RSSI-RUN-DATE], 5, 1) + '/' +substring (d.[RSSI-RUN-DATE], 6, 1)+substring (d.[RSSI-RUN-DATE], 7, 1)+ '/' +substring (d.[RSSI-RUN-DATE], 2, 1)+substring (d.[RSSI-RUN-DATE], 3, 1) as G2_Transaction_Period_End_Date,
+/*Transaction Amount*/
+replace (d.[RSSI-PRIN-PD-SINCE-LST-STMT],'+','') as H1_Principal,
+replace (d.[RSSI-INT-PD-SINCE-LST-STMT],'+','') as H2_Interest,
+replace (d.[RSSI-ESC-PD-SINCE-LST-STMT],'+','') as H3_Impound_Escrow,
+replace (d.[rssi-fees-pd-since-lst-stmt], '+','') as H4_Fees,
+replace (d.[rssi-lc-pd-since-lst-stmt],'+','') as H5_Late_Charges,
+replace (d.[rssi-amt-to-uaf-since-lst-stmt],'+','') as H6_Partial_Payment_Unapplied,
+replace (d.[rssi-tot-pd-since-lst-stmt],'+','') as H7_Total,
+replace (d.[rssi-prin-paid-ytd],'+','') as H8_Principal_YTD,
+replace (d.[RSSI-INT-PD-YTD],'+','') as H9_Interest_YTD,
+replace (d.[rssi-esc-paid-ytd],'+','') as H10_Impound_Escrow_YTD,
+replace (d.[rssi-fees-paid-ytd],'+','') as H11_Fees_YTD,
+replace (d.[rssi-late-chg-paid-ytd],'+','') as H12_Late_Charges_YTD,
+g.[RSSI-UNAP-BAL-TOT] as H13_Partial_Payment_Unapplied_Total,
+--d.[rssi-prin-paid-ytd]+[RSSI-INT-PD-YTD]+[rssi-esc-paid-ytd]+[rssi-fees-paid-ytd]+[rssi-late-chg-paid-ytd]+ g.[RSSI_UNAP_BAL_TOT] as Total_YTD,
+/*Messaging*/
+substring ( d.[rssi-run-date], 4, 1)+substring (d.[rssi-run-date], 5, 1) + '/' +substring (d.[rssi-run-date], 6, 1)+substring (d.[rssi-run-date], 7, 1)+ '/' +substring (d.[rssi-run-date], 2, 1)+substring (d.[rssi-run-date], 3, 1) as DL1_As_of_Date,
+cast(convert(numeric(18,2), d.[rssi-num-days-delq]) as varchar(50)) as DL2_Day_Delinquent,
+substring ( d.[RSSI-PMT-DUE-DATE-1], 4, 1)+substring (d.[RSSI-PMT-DUE-DATE-1], 5, 1) + '/' +substring (d.[RSSI-PMT-DUE-DATE-1], 6, 1)+substring (d.[RSSI-PMT-DUE-DATE-1], 7, 1)+ '/' +substring (d.[RSSI-PMT-DUE-DATE-1], 2, 1)+substring (d.[RSSI-PMT-DUE-DATE-1], 3, 1) as DL3_Past_Paid_Due_Date,
+substring ( d.[RSSI-PMT-PAID-DATE-1], 4, 1)+substring (d.[RSSI-PMT-PAID-DATE-1], 5, 1) + '/' +substring (d.[RSSI-PMT-PAID-DATE-1], 6, 1)+substring (d.[RSSI-PMT-PAID-DATE-1], 7, 1)+ '/' +substring (d.[RSSI-PMT-PAID-DATE-1], 2, 1)+substring (d.[RSSI-PMT-PAID-DATE-1], 3, 1) as DL4_Past_Paid_Payment_Date_1,
+--case when d.[RSSI-PMT-PAID-DATE-1] <> '' then 'Fully paid on d.[rssi-pmt-paid-1-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_1,
+substring ( d.[RSSI-PMT-DUE-DATE-2], 4, 1)+substring (d.[RSSI-PMT-DUE-DATE-2], 5, 1) + '/' +substring (d.[RSSI-PMT-DUE-DATE-2], 6, 1)+substring (d.[RSSI-PMT-DUE-DATE-2], 7, 1)+ '/' +substring (d.[RSSI-PMT-DUE-DATE-2], 2, 1)+substring (d.[RSSI-PMT-DUE-DATE-2], 3, 1) as DL5_Past_Paid_Payment_Due_Date_2,
+substring ( d.[RSSI-PMT-PAID-DATE-2], 4, 1)+substring (d.[RSSI-PMT-PAID-DATE-2], 5, 1) + '/' +substring (d.[RSSI-PMT-PAID-DATE-2], 6, 1)+substring (d.[RSSI-PMT-PAID-DATE-2], 7, 1)+ '/' +substring (d.[RSSI-PMT-PAID-DATE-2], 2, 1)+substring (d.[RSSI-PMT-PAID-DATE-2], 3, 1) as DL6_Past_Paid_Payment_Paid_Date_2,
+--case when d.[RSSI-PMT-PAID-DATE-2] <> '' then 'Fully paid on d.[rssi-pmt-paid-2-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_2,
+substring ( d.[RSSI-PMT-DUE-DATE-3], 4, 1)+substring (d.[RSSI-PMT-DUE-DATE-3], 5, 1) + '/' +substring (d.[RSSI-PMT-DUE-DATE-3], 6, 1)+substring (d.[RSSI-PMT-DUE-DATE-3], 7, 1)+ '/' +substring (d.[RSSI-PMT-DUE-DATE-3], 2, 1)+substring (d.[RSSI-PMT-DUE-DATE-3], 3, 1) as DL7_Past_Paid_Payment_Due_Date_3,
+substring ( d.[RSSI-PMT-PAID-DATE-3], 4, 1)+substring (d.[RSSI-PMT-PAID-DATE-3], 5, 1) + '/' +substring (d.[RSSI-PMT-PAID-DATE-3], 6, 1)+substring (d.[RSSI-PMT-PAID-DATE-3], 7, 1)+ '/' +substring (d.[RSSI-PMT-PAID-DATE-3], 2, 1)+substring (d.[RSSI-PMT-PAID-DATE-3], 3, 1) as DL8_Past_Paid_Payment_Date_3,
+--case when d.[RSSI-PMT-PAID-DATE-3] <> '' then 'Fully paid on d.[rssi-pmt-paid-3-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_3,
+substring ( d.[RSSI-PMT-DUE-DATE-4], 4, 1)+substring (d.[RSSI-PMT-DUE-DATE-4], 5, 1) + '/' +substring (d.[RSSI-PMT-DUE-DATE-4], 6, 1)+substring (d.[RSSI-PMT-DUE-DATE-4], 7, 1)+ '/' +substring (d.[RSSI-PMT-DUE-DATE-4], 2, 1)+substring (d.[RSSI-PMT-DUE-DATE-4], 3, 1) as DL9_Past_Paid_Payment_Due_Date_4,
+substring ( d.[RSSI-PMT-PAID-DATE-4], 4, 1)+substring (d.[RSSI-PMT-PAID-DATE-4], 5, 1) + '/' +substring (d.[RSSI-PMT-PAID-DATE-4], 6, 1)+substring (d.[RSSI-PMT-PAID-DATE-4], 7, 1)+ '/' +substring (d.[RSSI-PMT-PAID-DATE-4], 2, 1)+substring (d.[RSSI-PMT-PAID-DATE-4], 3, 1) as DL10_Past_Paid_Payment_Date_4,
+--case when d.[RSSI-PMT-PAID-DATE-4] <> '' then 'Fully paid on d.[rssi-pmt-paid-4-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_4,
+substring ( d.[RSSI-PMT-DUE-DATE-5], 4, 1)+substring (d.[RSSI-PMT-DUE-DATE-5], 5, 1) + '/' +substring (d.[RSSI-PMT-DUE-DATE-5], 6, 1)+substring (d.[RSSI-PMT-DUE-DATE-5], 7, 1)+ '/' +substring (d.[RSSI-PMT-DUE-DATE-5], 2, 1)+substring (d.[RSSI-PMT-DUE-DATE-5], 3, 1) as DL11_Past_Paid_Payment_Due_Date_5,
+substring ( d.[RSSI-PMT-PAID-DATE-5], 4, 1)+substring (d.[RSSI-PMT-PAID-DATE-5], 5, 1) + '/' +substring (d.[RSSI-PMT-PAID-DATE-5], 6, 1)+substring (d.[RSSI-PMT-PAID-DATE-5], 7, 1)+ '/' +substring (d.[RSSI-PMT-PAID-DATE-5], 2, 1)+substring (d.[RSSI-PMT-PAID-DATE-5], 3, 1) as DL12_Past_Paid_Payment_Date_5,
+--case when d.[RSSI-PMT-PAID-DATE-5] <> '' then 'Fully paid on d.[rssi-pmt-paid-5-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_5,
+substring ( d.[RSSI-PMT-DUE-DATE-6], 4, 1)+substring (d.[RSSI-PMT-DUE-DATE-6], 5, 1) + '/' +substring (d.[RSSI-PMT-DUE-DATE-6], 6, 1)+substring (d.[RSSI-PMT-DUE-DATE-6], 7, 1)+ '/' +substring (d.[RSSI-PMT-DUE-DATE-6], 2, 1)+substring (d.[RSSI-PMT-DUE-DATE-6], 3, 1) as DL13_Past_Paid_Payment_Due_Date_6,
+substring ( d.[RSSI-PMT-PAID-DATE-6], 4, 1)+substring (d.[RSSI-PMT-PAID-DATE-6], 5, 1) + '/' +substring (d.[RSSI-PMT-PAID-DATE-6], 6, 1)+substring (d.[RSSI-PMT-PAID-DATE-6], 7, 1)+ '/' +substring (d.[RSSI-PMT-PAID-DATE-6], 2, 1)+substring (d.[RSSI-PMT-PAID-DATE-6], 3, 1)  as DL14_Past_Paid_Payment_Date_6,
+--case when d.[RSSI-PMT-PAID-DATE-6] <> '' then 'Fully paid on d.[rssi-pmt-paid-6-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_6,
+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 3, 1)+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 4, 1) + '/' +substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 5, 1)+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 6, 1)+ '/' +substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 1, 1)+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 2, 1) as DL15_Current_Payment_Due_Date,
+case when d.[RSSI-CLS-CD] not in (1,9) then '$0.00 ' else replace (d.[RSSI-BILL-PMT-AMT],'+','') end as DL16_Current_Payment_Amount_Due,
+--d.[RSSI-BILL-PMT-AMT] + (d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT]) + d.[RSSI-BILL-TOTAL-DUE] as Total_Amount_To_Bring_Current,
+d.[RSSI-ACCT-NO]  as K4_Account_Number,
+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 3, 1)+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 4, 1) + '/' +substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 5, 1)+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 6, 1)+ '/' +substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 1, 1)+substring ((replace (d.[RSSI-CUR-DUE-DTE],'+','')), 2, 1) as K5_Payment_Due_Date,
+case when d.[RSSI-CLS-CD] not in (1,9) then '$0.00 ' else replace (d.[RSSI-BILL-PMT-AMT],'+','') end  as K6_Regular_Mortgage_Amount_Due,
+replace (d.[RSSI-LATE-CHG-AMT],'+','') as K7_Late_Fee_Amount,
+substring ((replace (d.[rssi-bill-pmt-dte],'+','')), 3, 1)+substring ((replace (d.[rssi-bill-pmt-dte],'+','')), 4, 1) + '/' +substring ((replace (d.[rssi-bill-pmt-dte],'+','')), 5, 1)+substring ((replace (d.[rssi-bill-pmt-dte],'+','')), 6, 1)+ '/' +substring ((replace (d.[rssi-bill-pmt-dte],'+','')), 1, 1)+substring ((replace (d.[rssi-bill-pmt-dte],'+','')), 2, 1) as K8_Late_Fee_Date,
+ substring (d.[RSSI-NEXT-DRAFT-DT],1,6) as K9_ACH_Draft_Date,
+'' as [rssi-rcd-id],
+'' as [rssi-b-chap],
+cast(convert(numeric(18,2), d.[rssi-num-days-delq]) as varchar(50)) as DL2_Day_Delinquent,
+g.[RSSI-LMT-PROGRAM],
+'' as lmtprogramdescription,
+d.[RSSI-EMAIL-BILL-IND],
+try_convert(date, substring(k.[RSSI-LCI-FREEZE-TO-DT], 2, 6), 101) as [rssi-lci-freeze-to-dt], --use for conditional on showing suspend late fee language
+try_convert(date, substring(k.[rssi-lci-freeze-from-dt], 2, 6), 101) as [rssi-lci-freeze-from-dt],
+'' as [RSSI-RCD-ID],
+'' as trfeecode,
+'' as transactioncode,
+'' as g3_transaction_date,
+'' as [RSSI-TR-AMT],
+'' as [rssi-tr-amt-to-prin],
+'' as [rssi-tr-amt-to-int],
+'' as [rssi-tr-amt-to-esc],
+'' as [rssi-tr-amt-to-lc],
+'' as [rssi-tr-amt-to-pvar],
+'' as [rssi-tr-amt-to-ivar],
+'' as [rssi-tr-amt-to-evar],
+'' as [rssi-tr-amt-to-lvar],
+'' as [RSSI-TR-FEE-DESC],
+'' as [chargedescription],
+'' as [paymentdescription],
+'' as [RSSI-RCD-ID],
+'' as [RSSI-FD-ASSESS-AMT],
+'' as [RSSI-FD-FEE-DESC],
+'' as g3_fee_assess_date,
+'' as g3_fee_coll_date,
+u.[RSSI-USR-51] as agency,
+case when u.[rssi-usr-50] = '' then '' else substring(u.[rssi-usr-50], 1,3) + '-' + substring(u.[rssi-usr-50], 4,3) + '-' + substring(u.[rssi-usr-50], 7, 4) end  as phonenumber,
+case when u.[rssi-usr-46] = '' then '' else '#' + ltrim(u.[rssi-usr-46]) end as nmlsnumber,
+case when d.[rssi-usr-36] = 'N' then '' else d.[rssi-usr-36] end as achindicator,
+--NEW Due Date Logic as of 2/19/2019 - If RSSI-DUE-DATE > RSSI-CUR-DUE-DTE Set Amount Due to $0.00
+substring (replace (d.[rssi-due-date], ' ', ''), 5, 1)+substring ( replace (d.[rssi-due-date], ' ', ''), 6, 1) + '/' +substring ( replace (d.[rssi-due-date], ' ', ''), 3, 1)+substring ( replace (d.[rssi-due-date], ' ', ''), 4, 1)+ '/' +substring ( replace (d.[rssi-due-date], ' ', ''), 1, 1)+substring ( replace (d.[rssi-due-date], ' ', ''), 2, 1) as rssiduedatecheck,
+substring (replace (d.[RSSI-CUR-DUE-DTE], '+', ''), 5, 1)+substring ( replace (d.[RSSI-CUR-DUE-DTE], '+', ''), 6, 1) + '/' +substring ( replace (d.[RSSI-CUR-DUE-DTE], '+', ''), 3, 1)+substring ( replace (d.[RSSI-CUR-DUE-DTE], '+', ''), 4, 1)+ '/' +substring ( replace (d.[RSSI-CUR-DUE-DTE], '+', ''), 1, 1)+substring ( replace (d.[RSSI-CUR-DUE-DTE], '+', ''), 2, 1) as rssicurduedatecheck,
+case
+	when try_convert(date, (replace (d.[rssi-due-date], ' ', '')), 101) > try_convert (date, (replace (d.[RSSI-CUR-DUE-DTE],'+','')),101) then '$0.00'
+	when d.[RSSI-CLS-CD] not in (1,9) then '$0.00 ' 
+	else d.[RSSI-BILL-PMT-AMT]
+end as newamountdue,
+case
+	when try_convert(date, (replace (d.[rssi-due-date], ' ', '')), 101) > try_convert (date, (replace (d.[RSSI-CUR-DUE-DTE],'+','')),101) then '$0.00'
+	else d.[rssi-p-i-pymt]
+end as newrssipipymt,
+case
+	when try_convert(date, (replace (d.[rssi-due-date], ' ', '')), 101) > try_convert (date, (replace (d.[RSSI-CUR-DUE-DTE],'+','')),101) then '$0.00'
+	else d.[rssi-int-due]
+end as newrssiintdue,
+case
+	when try_convert(date, (replace (d.[rssi-due-date], ' ', '')), 101) > try_convert (date, (replace (d.[RSSI-CUR-DUE-DTE],'+','')),101) then '$0.00'
+	else d.[RSSI-ESC-PYMT]
+end as newrssiescpymt,
+case
+	when try_convert(date, (replace (d.[rssi-due-date], ' ', '')), 101) > try_convert (date, (replace (d.[RSSI-CUR-DUE-DTE],'+','')),101) then '$0.00'
+	when d.[RSSI-CLS-CD] not in (1,9) then '$0.00 ' 
+	else d.[RSSI-BILL-PMT-AMT]
+end as newrssibillpmtamt,
+case
+	when try_convert(date, (replace (d.[rssi-due-date], ' ', '')), 101) > try_convert (date, (replace (d.[RSSI-CUR-DUE-DTE],'+','')),101) then '$0.00'
+	else case when ltrim(rtrim(d.[rssi-fees])) = '+00000.00' then d.[rssi-fees] else '+' + substring(d.[rssi-fees], 2, 10) end 
+end as newrssifees,
+case
+	when try_convert(date, (replace (d.[rssi-due-date], ' ', '')), 101) > try_convert (date, (replace (d.[RSSI-CUR-DUE-DTE],'+','')),101) then '$0.00'
+	else d.[RSSI-LATE-CHG-DUE]
+end as newrssilatechgdue,
+case
+	when try_convert(date, (replace (d.[rssi-due-date], ' ', '')), 101) > try_convert (date, (replace (d.[RSSI-CUR-DUE-DTE],'+','')),101) then '$0.00'
+	else d.[RSSI-CR-INS-PYMT]
+end as newrssicrinspymnt,
+case
+	when try_convert(date, (replace (d.[rssi-due-date], ' ', '')), 101) > try_convert (date, (replace (d.[RSSI-CUR-DUE-DTE],'+','')),101) then '$0.00'
+	else d.[RSSI-BILL-TOTAL-DUE]
+end as newrssibilltotaldue,
+substring (replace (d.[RSSI-RATE-CHG-DATE], ' 01', ''), 3, 1)+substring ( replace (d.[RSSI-RATE-CHG-DATE], ' 01', ''), 4, 1) + '/' +substring ( replace (d.[RSSI-RATE-CHG-DATE], ' 01', ''), 5, 1)+substring ( replace (d.[RSSI-RATE-CHG-DATE], ' 01', ''), 6, 1)+ '/' +substring ( replace (d.[RSSI-RATE-CHG-DATE], ' 01', ''), 1, 1)+substring ( replace (d.[RSSI-RATE-CHG-DATE], ' 01', ''), 6, 1) as newintratechange,
+substring ( d.[RSSI-MAT-DATE], 6, 1)+substring (d.[RSSI-MAT-DATE], 7, 1) + '/' +substring (d.[RSSI-MAT-DATE], 8, 1)+substring (d.[RSSI-MAT-DATE], 9, 1)+ '/' +substring (d.[RSSI-MAT-DATE], 4, 1)+substring (d.[RSSI-MAT-DATE], 5, 1) as rssimatdate,
+case
+	when d.[RSSI-RATE-CHG-DATE] = ' 00000000' then substring ( d.[RSSI-MAT-DATE], 6, 1)+substring (d.[RSSI-MAT-DATE], 7, 1) + '/' +substring (d.[RSSI-MAT-DATE], 8, 1)+substring (d.[RSSI-MAT-DATE], 9, 1)+ '/' +substring (d.[RSSI-MAT-DATE], 4, 1)+substring (d.[RSSI-MAT-DATE], 5, 1) else  substring ((replace ([RSSI-RATE-CHG-DATE],'+','')),6, 1)+substring ((replace ([RSSI-RATE-CHG-DATE],'+','')),7, 1) + '/' +substring ((replace ([RSSI-RATE-CHG-DATE],'+','')), 8, 1)+substring ((replace ([RSSI-RATE-CHG-DATE],'+','')), 9, 1)+ '/' +substring ((replace ([RSSI-RATE-CHG-DATE],'+','')), 4, 1)+substring ((replace ([RSSI-RATE-CHG-DATE],'+','')),5, 1) end as interestrateuntildate,
+d.[rssi-pymts-due-amt] as NEW_F6_Past_Due_Payments,
+i.[rssi-cb-cbwr1-typ] as coborrowerrec,
+i.[RSSI-CSII-CBWR1-VERIFIED] as coborrowerverified,
+i.[rssi-cb-cbwr1-bill-stmnt] as coborrowerbillstmnt,
+i.[rssi-cb-cbwr1-f] as coborrowername,
+i.[rssi-cb-cbwr1-adrs1] as coborroweraddr1,
+i.[rssi-cb-cbwr1-adrs2] as coborroweraddr2,
+i.[rssi-cb-cbwr1-city] as coborrowercity,
+i.[rssi-cb-cbwr1-state] as coborrowerstate,
+i.[rssi-cb-cbwr1-zip] as coborrowerzip,
+datediff(dd, try_convert (date, d.[rssi-run-date], 112), try_convert(date, d.[RSSI-MAT-DATE], 101)) as maturitydateyears,
+case
+	when try_convert (date, d.[rssi-run-date], 112) between try_convert(date, substring(k.[rssi-lci-freeze-from-dt], 2, 6), 101) and try_convert(date, substring(k.[RSSI-LCI-FREEZE-TO-DT], 2, 6), 101) then 'Y'
+	else 'N'
+end as suspendlatefeelanguage,
+g.[RSSI-UNCOLL-ESC-SHORT],
+substring ( d.[RSSI-AUDIT-DATE], 6, 1)+substring (d.[RSSI-AUDIT-DATE], 7, 1) + '/' +substring (d.[RSSI-AUDIT-DATE], 8, 1)+substring (d.[RSSI-AUDIT-DATE], 9, 1)+ '/' +substring (d.[RSSI-AUDIT-DATE], 4, 1)+substring (d.[RSSI-AUDIT-DATE], 5, 1) as [RSSI-AUDIT-DATE],
+case when [RSSI-LIP-LA-DATE] = ' 000000' then 'Y' else 'N' end as tax_insert,
+case when d.[RSSI-EMAIL-BILL-IND] = 'Y' and d.[rssi-usr-36] = 'Y' and substring(d.[rssi-run-date],4,2)  in ('02','04','06','08','10','12') then 'V3'
+when d.[RSSI-EMAIL-BILL-IND] = 'Y' and d.[rssi-usr-36] = 'Y' and substring(d.[rssi-run-date],4,2)  in ('01','03','05','07','09','11') then 'V2'
+when d.[RSSI-EMAIL-BILL-IND] = 'Y' and d.[rssi-usr-36] = 'N' or d.[RSSI-EMAIL-BILL-IND] = 'Y' and d.[rssi-usr-36] = '' then 'V1'
+else 'V4' end as onsertindicator,
+'' as 'SEQ-NO'
+
+from  Gateway_Header_Records a
+	join Gateway_B_Records b on b.[RSSI-INST] = a.[RSSI-INST] --and b.[FileName] = @filename
+	join Gateway_P_Records c on c.[RSSI-INST] = a.[RSSI-INST] --and c.[FileName] = @filename
+	join Gateway_A_records d on d.[RSSI-INST] = a.[RSSI-INST] --and d.[FileName] = @filename
+	join gateway_Z_Records z on z.[RSSI-INST] = a.[RSSI-INST] --and z.[FileName] = @filename
+	left join gateway_t_records e on e.[RSSI-INST] = a.[RSSI-INST] and e.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] and 
+		ltrim(rtrim(e.[rssi-log-tran])) in  ('5620', '5700', '5710', '5730', '5741', '5742', '5745', '5750', '5760', '5761', '5770', '5771', '5775', '5776', '5850') AND e.[RSSI-LOG-PTRN] NOT IN ('PFSP1069','PFSP1169','PFSP1269','PFSP1369','PFSP4540','PFSP4549','PFSP524','PFSP539','PFSP578','PFSP478X')
+		 /*and e.[FileName] = @filename*/
+	--left join gateway_f_records f on f.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and f.[RSSI-SEQ-NO] = e.[RSSI-SEQ-NO]
+	--join Mortgage_TandF_Reference x on ltrim(rtrim(x.[rssi-log-tran])) = ltrim(rtrim(e.[RSSI-LOG-TRAN])) 
+	left join Gateway_2_records g on g.[RSSI-INST] = a.[RSSI-INST] and g.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and g.[FileName] = @filename
+	left join Gateway_J_Records j on j.[rssi-inst] = a.[rssi-inst] and j.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and j.[FileName] = @filename
+	left join gateway_x_records k on k.[rssi-inst] = a.[rssi-inst] and k.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and k.[FileName] = @filename
+	left join gateway_u_records u on u.[RSSI-INST] = a.[RSSI-INST] and u.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and u.[FileName] = @filename
+	left join gateway_i_records i on i.[RSSI-INST] = a.[RSSI-INST] and i.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] and ltrim(rtrim(i.[rssi-cb-cbwr1-bill-stmnt])) <> 'O' --and i.[FileName] = @filename
+
+where /*and g.[FileName] = @filename*/ convert(numeric(18,0), d.[RSSI-NUM-DAYS-DELQ]) <= 45 and j.[RSSI-RCD-ID] is null   and d.[RSSI-LOSS-MIT-IND] <>'A'--AND d.[RSSI-EMAIL-BILL-IND] <> 'Y'  and d.[rssi-acct-no] like '%' + @account + '%'
+
+
+union
+
+select distinct 'T' as sortcode,
+d.[RSSI-ACCT-NO] as accountnumber,
+'' as recordtype1,
+'' as [RSSI-INST], 
+'' as  Account_Number_H,
+'' as recordtype2,
+'' as Account_Number_B,
+'' as [RSSI-INSTITUTION-NAME],
+'' as [RSSI-INST-ADRS-1],
+'' as [RSSI-INST-ADRS-2],
+'' as [RSSI-INST-CITY],
+'' as [RSSI-INST-STATE],
+'' as [RSSI-INST-ZIP],
+'' as recordtype3,
+'' as [rssi-inst],
+'' as [RSSI-N1MX-PLSS-ENTITY],
+'' as [RSSI-ENTY-NAME],
+'' as [RSSI-ENTY-ADRS-1],
+'' as [RSSI-ENTY-ADRS-2],
+'' as [RSSI-ENTY-CITY],
+'' as [RSSI-ENTY-STATE],
+'' as [RSSI-ENTY-ZIP],
+'' as recordtype4,
+'' as b3_statementdate,
+'' as c1_borrowername,
+'' as c2_secondaryname,
+'' as Mailing_Address_1,
+'' as Mailing_Address_2,
+'' as Mailing_Address_City,
+'' as Mailing_Address_State,
+'' as Mailing_Address_Zip,
+/*Summary Box*/
+'' as d1_accountnumber,
+'' as D2_Payment_Due_Date,
+'' as D3_Regular_Mortgage_Amount_Due,
+'' as D4_If_Payment_Received_After_Date,
+'' as D5_If_Payment_Received_After_Late_Fee_Amount,
+/*Account Information*/
+'' as E1_Property_Address_1,
+'' as E1_Property_Address_2,
+'' as E1_Property_Address_City,
+'' as E1_Property_Address_State,
+'' as E1_Property_Address_Zip,
+'' as E2_Outstanding_Principal_Balance,
+'' as E3_Interest_Rate_Until_Date,
+'' as E4_Interest_Rate,
+'' as 'PrePayment_Penalty',
+/*Explanation of Amount Due*/
+'' as [RSSI-P-I-PYMT],
+case 
+	when ltrim(rtrim(d.[rssi-fees])) = '+00000.00' then d.[rssi-fees]
+	else '+' + substring(d.[rssi-fees], 2, 10)
+end as [rssi-fees],
+'' as [rssi-late-chg-due],
+'' as [RSSI-CR-INS-PYMT],
+--d.[RSSI-P-I-PYMT] - d.[RSSI-INT-DUE] as Principal,
+'' as F2_Interest,
+'' as F3_Escrow,
+'' as F4_Regular_Monthly_Payment,
+--d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT] as total_fees_charged,
+'' as F6_Past_Due_Payments,
+--d.[RSSI-BILL-PMT-AMT] + (d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT]) +[RSSI-BILL-TOTAL-DUE] as Total_Amount_Due,
+/*Transaction Activity*/
+'' as G1_Transaction_Period_Begin_Date,
+'' as G2_Transaction_Period_End_Date,
+/*Transaction Amount*/
+'' as H1_Principal,
+'' as H2_Interest,
+'' as H3_Impound_Escrow,
+'' as H4_Fees,
+'' as H5_Late_Charges,
+'' as H6_Partial_Payment_Unapplied,
+'' as H7_Total,
+'' as H8_Principal_YTD,
+'' as H9_Interest_YTD,
+'' as H10_Impound_Escrow_YTD,
+'' as H11_Fees_YTD,
+'' as H12_Late_Charges_YTD,
+'' as H13_Partial_Payment_Unapplied_Total,
+--'' as --d.[rssi-prin-paid-ytd]+[RSSI-INT-PD-YTD]+[rssi-esc-paid-ytd]+[rssi-fees-paid-ytd]+[rssi-late-chg-paid-ytd]+ g.[RSSI_UNAP_BAL_TOT] as Total_YTD,
+/*Messaging*/
+'' as DL1_As_of_Date,
+'' as DL2_Day_Delinquent,
+'' as DL3_Past_Paid_Due_Date,
+'' as DL4_Past_Paid_Payment_Date_1,
+--case when d.[RSSI-PMT-PAID-DATE-1] <> '' then 'Fully paid on d.[rssi-pmt-paid-1-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_1,
+'' as DL5_Past_Paid_Payment_Due_Date_2,
+'' as DL6_Past_Paid_Payment_Paid_Date_2,
+--case when d.[RSSI-PMT-PAID-DATE-2] <> '' then 'Fully paid on d.[rssi-pmt-paid-2-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_2,
+'' as DL7_Past_Paid_Payment_Due_Date_3,
+'' as DL8_Past_Paid_Payment_Date_3,
+--case when d.[RSSI-PMT-PAID-DATE-3] <> '' then 'Fully paid on d.[rssi-pmt-paid-3-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_3,
+'' as DL9_Past_Paid_Payment_Due_Date_4,
+'' as DL10_Past_Paid_Payment_Date_4,
+--case when d.[RSSI-PMT-PAID-DATE-4] <> '' then 'Fully paid on d.[rssi-pmt-paid-4-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_4,
+'' as DL11_Past_Paid_Payment_Due_Date_5,
+'' as DL12_Past_Paid_Payment_Date_5,
+--case when d.[RSSI-PMT-PAID-DATE-5] <> '' then 'Fully paid on d.[rssi-pmt-paid-5-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_5,
+'' as DL13_Past_Paid_Payment_Due_Date_6,
+'' as DL14_Past_Paid_Payment_Date_6,
+--case when d.[RSSI-PMT-PAID-DATE-6] <> '' then 'Fully paid on d.[rssi-pmt-paid-6-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_6,
+'' as DL15_Current_Payment_Due_Date,
+'' as DL16_Current_Payment_Amount_Due,
+--d.[RSSI-BILL-PMT-AMT] + (d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT]) + d.[RSSI-BILL-TOTAL-DUE] as Total_Amount_To_Bring_Current,
+'' as K4_Account_Number,
+'' as K5_Payment_Due_Date,
+'' as K6_Regular_Mortgage_Amount_Due,
+'' as K7_Late_Fee_Amount,
+'' as K8_Late_Fee_Date,
+'' as K9_ACH_Draft_Date,
+'' as [rssi-rcd-id],
+'' as [rssi-b-chap],
+'' as [RSSI-NUM-DAYS-DELQ],
+'' as [RSSI-LMT-PROGRAM],
+'' as  lmtprogramdescription,
+'' as [RSSI-EMAIL-BILL-IND],
+'' as [RSSI-LCI-FREEZE-TO-DT], --use for conditional on showing suspend late fee language
+'' as [rssi-lci-freeze-from-dt],
+'' as [RSSI-RCD-ID],
+e.[rssi-tr-fee-code] as trfeecode,
+e.[rssi-log-tran] as transactioncode,
+substring ((replace (e.[rssi-tr-date],'+','')), 4, 1)+substring ((replace (e.[rssi-tr-date],'+','')), 5, 1) + '/' +substring ((replace (e.[rssi-tr-date],'+','')), 6, 1)+substring ((replace (e.[rssi-tr-date],'+','')), 7, 1)+ '/' +substring ((replace (e.[rssi-tr-date],'+','')), 2, 1)+substring ((replace (e.[rssi-tr-date],'+','')), 3, 1) as g3_transaction_date,
+e.[RSSI-TR-AMT],
+e.[rssi-tr-amt-to-prin],
+e.[rssi-tr-amt-to-int],
+e.[rssi-tr-amt-to-esc],
+e.[rssi-tr-amt-to-lc],
+e.[rssi-tr-amt-to-pvar],
+e.[rssi-tr-amt-to-ivar],
+e.[rssi-tr-amt-to-evar],
+e.[rssi-tr-amt-to-lvar],
+e.[RSSI-TR-FEE-DESC],
+(select distinct x.[chargedescription]
+	from Mortgage_TandF_Reference x
+		where ltrim(rtrim(x.[rssi-log-tran])) = ltrim(rtrim(e.[rssi-log-tran]))) as chargedescription,
+(select distinct x.PaymentDescription
+	from Mortgage_TandF_Reference x
+		where ltrim(rtrim(x.[rssi-log-tran])) = ltrim(rtrim(e.[rssi-log-tran]))) as paymentdescription,
+'' as [RSSI-RCD-ID],
+'' as [RSSI-FD-ASSESS-AMT],
+'' as [RSSI-FD-FEE-DESC],
+'' as g3_fee_assess_date,
+'' as g3_fee_coll_date,
+'' as agency,
+'' as phonenumber,
+'' as nmlsnumber,
+'' as achindicator,
+--NEW Due Date Logic as of 2/19/2019 - If RSSI-DUE-DATE > RSSI-CUR-DUE-DTE Set Amount Due to $0.00
+'' as rssiduedatecheck,
+'' as rssicurduedatecheck,
+'' as newamountdue,
+'' as newrssipipymt,
+'' as newrssiintdue,
+'' as newrssiescpymt,
+'' as newrssibillpmtamt,
+'' as newrssifees,
+'' as newrssilatechgdue,
+'' as newrssicrinspymnt,
+'' as newrssibilltotaldue,
+'' as newintratechange,
+'' as rssimatdate,
+'' as interestrateuntildate,
+'' as NEW_F6_Past_Due_Payments,
+'' as coborrowerrec,
+'' as coborrowerverified,
+'' as coborrowerbillstmnt,
+'' as coborrowername,
+'' as coborroweraddr1,
+'' as coborroweraddr2,
+'' as coborrowercity,
+'' as coborrowerstate,
+'' as coborrowerzip,
+'' as maturitydateyears,
+'' as suspendlatefeelanguage,
+'' as [RSSI-UNCOLL-ESC-SHORT],
+'' as [RSSI-AUDIT-DATE],
+'' as tax_insert,
+'' as onsertindicator,
+e.[RSSI-SEQ-NO]
+
+from  Gateway_Header_Records a
+	join Gateway_B_Records b on b.[RSSI-INST] = a.[RSSI-INST] --and b.[FileName] = @filename
+	join Gateway_P_Records c on c.[RSSI-INST] = a.[RSSI-INST] --and c.[FileName] = @filename
+	join Gateway_A_records d on d.[RSSI-INST] = a.[RSSI-INST] --and d.[FileName] = @filename
+	join gateway_Z_Records z on z.[RSSI-INST] = a.[RSSI-INST] --and z.[FileName] = @filename
+	join gateway_t_records e on e.[RSSI-INST] = a.[RSSI-INST] and e.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] and 
+		ltrim(rtrim(e.[rssi-log-tran])) in  ('5620', '5700', '5710', '5730', '5741', '5742', '5745', '5750', '5760', '5761', '5770', '5771', '5775', '5776', '5850') AND e.[RSSI-LOG-PTRN] NOT IN ('PFSP1069','PFSP1169','PFSP1269','PFSP1369','PFSP4540','PFSP4549','PFSP524','PFSP539','PFSP578','PFSP478X')
+		and substring ((replace (e.[RSSI-tr-amt],'+','')),PATINDEX ('%[^0]%',(replace (e.[RSSI-tr-amt],'+',''))+'0'), LEN((replace (e.[RSSI-tr-amt],'+','')))) <> '.00'  
+		and substring ((replace (e.[RSSI-tr-amt],'-','')),PATINDEX ('%[^0]%',(replace (e.[RSSI-tr-amt],'-',''))+'0'), LEN((replace (e.[RSSI-tr-amt],'-','')))) <> '.00' /*and e.[FileName] = @filename*/
+	--left join gateway_f_records f on f.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and f.[RSSI-SEQ-NO] = e.[RSSI-SEQ-NO]
+	--join Mortgage_TandF_Reference x on ltrim(rtrim(x.[rssi-log-tran])) = ltrim(rtrim(e.[RSSI-LOG-TRAN])) 
+	left join Gateway_2_records g on g.[RSSI-INST] = a.[RSSI-INST] and g.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and g.[FileName] = @filename
+	left join Gateway_J_Records j on j.[rssi-inst] = a.[rssi-inst] and j.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and j.[FileName] = @filename
+	left join gateway_x_records k on k.[rssi-inst] = a.[rssi-inst] and k.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and k.[FileName] = @filename
+	left join gateway_u_records u on u.[RSSI-INST] = a.[RSSI-INST] and u.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and u.[FileName] = @filename
+	left join gateway_i_records i on i.[RSSI-INST] = a.[RSSI-INST] and i.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] and ltrim(rtrim(i.[rssi-cb-cbwr1-bill-stmnt])) <> 'O' --and i.[FileName] = @filename
+
+where /*and g.[FileName] = @filename*/ convert(numeric(18,0), d.[RSSI-NUM-DAYS-DELQ]) <= 45 and j.[RSSI-RCD-ID] is null  and d.[RSSI-LOSS-MIT-IND] <>'A' --AND d.[RSSI-EMAIL-BILL-IND] <> 'Y'  and d.[rssi-acct-no] like '%' + @account + '%'
+
+
+union
+
+select distinct 'T' as sortcode,
+d.[RSSI-ACCT-NO] as accountnumber,
+'' as recordtype1,
+'' as [RSSI-INST], 
+'' as  Account_Number_H,
+'' as recordtype2,
+'' as Account_Number_B,
+'' as [RSSI-INSTITUTION-NAME],
+'' as [RSSI-INST-ADRS-1],
+'' as [RSSI-INST-ADRS-2],
+'' as [RSSI-INST-CITY],
+'' as [RSSI-INST-STATE],
+'' as [RSSI-INST-ZIP],
+'' as recordtype3,
+'' as [rssi-inst],
+'' as [RSSI-N1MX-PLSS-ENTITY],
+'' as [RSSI-ENTY-NAME],
+'' as [RSSI-ENTY-ADRS-1],
+'' as [RSSI-ENTY-ADRS-2],
+'' as [RSSI-ENTY-CITY],
+'' as [RSSI-ENTY-STATE],
+'' as [RSSI-ENTY-ZIP],
+'' as recordtype4,
+'' as b3_statementdate,
+'' as c1_borrowername,
+'' as c2_secondaryname,
+'' as Mailing_Address_1,
+'' as Mailing_Address_2,
+'' as Mailing_Address_City,
+'' as Mailing_Address_State,
+'' as Mailing_Address_Zip,
+/*Summary Box*/
+'' as d1_accountnumber,
+'' as D2_Payment_Due_Date,
+'' as D3_Regular_Mortgage_Amount_Due,
+'' as D4_If_Payment_Received_After_Date,
+'' as D5_If_Payment_Received_After_Late_Fee_Amount,
+/*Account Information*/
+'' as E1_Property_Address_1,
+'' as E1_Property_Address_2,
+'' as E1_Property_Address_City,
+'' as E1_Property_Address_State,
+'' as E1_Property_Address_Zip,
+'' as E2_Outstanding_Principal_Balance,
+'' as E3_Interest_Rate_Until_Date,
+'' as E4_Interest_Rate,
+'' as 'PrePayment_Penalty',
+/*Explanation of Amount Due*/
+'' as [RSSI-P-I-PYMT],
+'' as [rssi-fees],
+'' as [rssi-late-chg-due],
+'' as [RSSI-CR-INS-PYMT],
+--d.[RSSI-P-I-PYMT] - d.[RSSI-INT-DUE] as Principal,
+'' as F2_Interest,
+'' as F3_Escrow,
+'' as F4_Regular_Monthly_Payment,
+--d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT] as total_fees_charged,
+'' as F6_Past_Due_Payments,
+--d.[RSSI-BILL-PMT-AMT] + (d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT]) +[RSSI-BILL-TOTAL-DUE] as Total_Amount_Due,
+/*Transaction Activity*/
+'' as G1_Transaction_Period_Begin_Date,
+'' as G2_Transaction_Period_End_Date,
+/*Transaction Amount*/
+'' as H1_Principal,
+'' as H2_Interest,
+'' as H3_Impound_Escrow,
+'' as H4_Fees,
+'' as H5_Late_Charges,
+'' as H6_Partial_Payment_Unapplied,
+'' as H7_Total,
+'' as H8_Principal_YTD,
+'' as H9_Interest_YTD,
+'' as H10_Impound_Escrow_YTD,
+'' as H11_Fees_YTD,
+'' as H12_Late_Charges_YTD,
+'' as H13_Partial_Payment_Unapplied_Total,
+--'' as --d.[rssi-prin-paid-ytd]+[RSSI-INT-PD-YTD]+[rssi-esc-paid-ytd]+[rssi-fees-paid-ytd]+[rssi-late-chg-paid-ytd]+ g.[RSSI_UNAP_BAL_TOT] as Total_YTD,
+/*Messaging*/
+'' as DL1_As_of_Date,
+'' as DL2_Day_Delinquent,
+'' as DL3_Past_Paid_Due_Date,
+'' as DL4_Past_Paid_Payment_Date_1,
+--case when d.[RSSI-PMT-PAID-DATE-1] <> '' then 'Fully paid on d.[rssi-pmt-paid-1-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_1,
+'' as DL5_Past_Paid_Payment_Due_Date_2,
+'' as DL6_Past_Paid_Payment_Paid_Date_2,
+--case when d.[RSSI-PMT-PAID-DATE-2] <> '' then 'Fully paid on d.[rssi-pmt-paid-2-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_2,
+'' as DL7_Past_Paid_Payment_Due_Date_3,
+'' as DL8_Past_Paid_Payment_Date_3,
+--case when d.[RSSI-PMT-PAID-DATE-3] <> '' then 'Fully paid on d.[rssi-pmt-paid-3-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_3,
+'' as DL9_Past_Paid_Payment_Due_Date_4,
+'' as DL10_Past_Paid_Payment_Date_4,
+--case when d.[RSSI-PMT-PAID-DATE-4] <> '' then 'Fully paid on d.[rssi-pmt-paid-4-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_4,
+'' as DL11_Past_Paid_Payment_Due_Date_5,
+'' as DL12_Past_Paid_Payment_Date_5,
+--case when d.[RSSI-PMT-PAID-DATE-5] <> '' then 'Fully paid on d.[rssi-pmt-paid-5-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_5,
+'' as DL13_Past_Paid_Payment_Due_Date_6,
+'' as DL14_Past_Paid_Payment_Date_6,
+--case when d.[RSSI-PMT-PAID-DATE-6] <> '' then 'Fully paid on d.[rssi-pmt-paid-6-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_6,
+'' as DL15_Current_Payment_Due_Date,
+'' as DL16_Current_Payment_Amount_Due,
+--d.[RSSI-BILL-PMT-AMT] + (d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT]) + d.[RSSI-BILL-TOTAL-DUE] as Total_Amount_To_Bring_Current,
+'' as K4_Account_Number,
+'' as K5_Payment_Due_Date,
+'' as K6_Regular_Mortgage_Amount_Due,
+'' as K7_Late_Fee_Amount,
+'' as K8_Late_Fee_Date,
+'' as K9_ACH_Draft_Date,
+'' as [rssi-rcd-id],
+'' as [rssi-b-chap],
+'' as [RSSI-NUM-DAYS-DELQ],
+'' as [RSSI-LMT-PROGRAM],
+'' as  lmtprogramdescription,
+'' as [RSSI-EMAIL-BILL-IND],
+'' as [RSSI-LCI-FREEZE-TO-DT], --use for conditional on showing suspend late fee language
+'' as [rssi-lci-freeze-from-dt],
+'' as [RSSI-RCD-ID],
+'' as trfeecode,
+'' as transactioncode,
+substring ((replace (f.[RSSI-FD-ASSESS-DATE],'+','')), 5, 1)+substring ((replace (f.[RSSI-FD-ASSESS-DATE],'+','')), 6, 1) + '/' +substring ((replace (f.[RSSI-FD-ASSESS-DATE],'+','')), 7, 1)+substring ((replace (f.[RSSI-FD-ASSESS-DATE],'+','')), 8, 1)+ '/' +substring ((replace (f.[RSSI-FD-ASSESS-DATE],'+','')), 3, 1)+substring ((replace (f.[RSSI-FD-ASSESS-DATE],'+','')), 4, 1) as g3_transaction_date,
+f.[rssi-fd-assess-amt] as [RSSI-TR-AMT],
+'' as [rssi-tr-amt-to-prin],
+'' as [rssi-tr-amt-to-int],
+'' as [rssi-tr-amt-to-esc],
+'' as [rssi-tr-amt-to-lc],
+'' as [rssi-tr-amt-to-pvar],
+'' as [rssi-tr-amt-to-ivar],
+'' as [rssi-tr-amt-to-evar],
+'' as [rssi-tr-amt-to-lvar],
+'' as [RSSI-TR-FEE-DESC],
+case when f.[rssi-fd-fee-desc] = 'ACCRUED LATE CHARGE' then 'Accrued Late Charge' end as chargedescription,
+'' as paymentdescription,
+'' as [RSSI-RCD-ID],
+'' as [RSSI-FD-ASSESS-AMT],
+'' as [RSSI-FD-FEE-DESC],
+'' as g3_fee_assess_date,
+'' as g3_fee_coll_date,
+'' as agency,
+'' as phonenumber,
+'' as nmlsnumber,
+'' as achindicator,
+--NEW Due Date Logic as of 2/19/2019 - If RSSI-DUE-DATE > RSSI-CUR-DUE-DTE Set Amount Due to $0.00
+'' as rssiduedatecheck,
+'' as rssicurduedatecheck,
+'' as newamountdue,
+'' as newrssipipymt,
+'' as newrssiintdue,
+'' as newrssiescpymt,
+'' as newrssibillpmtamt,
+'' as newrssifees,
+'' as newrssilatechgdue,
+'' as newrssicrinspymnt,
+'' as newrssibilltotaldue,
+'' as newintratechange,
+'' as rssimatdate,
+'' as interestrateuntildate,
+'' as NEW_F6_Past_Due_Payments,
+'' as coborrowerrec,
+'' as coborrowerverified,
+'' as coborrowerbillstmnt,
+'' as coborrowername,
+'' as coborroweraddr1,
+'' as coborroweraddr2,
+'' as coborrowercity,
+'' as coborrowerstate,
+'' as coborrowerzip,
+'' as maturitydateyears,
+'' as suspendlatefeelanguage,
+'' as [RSSI-UNCOLL-ESC-SHORT],
+'' as [RSSI-AUDIT-DATE],
+'' as tax_insert,
+'' as onsertindicator,
+'' as 'SEQ-NO'
+
+from  Gateway_Header_Records a
+	join Gateway_B_Records b on b.[RSSI-INST] = a.[RSSI-INST] --and b.[FileName] = @filename
+	join Gateway_P_Records c on c.[RSSI-INST] = a.[RSSI-INST] --and c.[FileName] = @filename
+	join Gateway_A_records d on d.[RSSI-INST] = a.[RSSI-INST] --and d.[FileName] = @filename
+	join gateway_Z_Records z on z.[RSSI-INST] = a.[RSSI-INST] --and z.[FileName] = @filename
+	--join gateway_t_records e on e.[RSSI-INST] = a.[RSSI-INST] and e.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] and 
+		--ltrim(rtrim(e.[rssi-log-tran])) in ('5620', '5710', '5730',  '5742', '5745', '5750',  '5770', '5771', '5775', '5776', '5850') /*and e.[FileName] = @filename*/
+	join gateway_f_records f on f.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and f.[RSSI-SEQ-NO] = e.[RSSI-SEQ-NO]
+	--join Mortgage_TandF_Reference x on ltrim(rtrim(x.[rssi-log-tran])) = ltrim(rtrim(e.[RSSI-LOG-TRAN])) 
+	left join Gateway_2_records g on g.[RSSI-INST] = a.[RSSI-INST] and g.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and g.[FileName] = @filename
+	left join Gateway_J_Records j on j.[rssi-inst] = a.[rssi-inst] and j.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and j.[FileName] = @filename
+	left join gateway_x_records k on k.[rssi-inst] = a.[rssi-inst] and k.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and k.[FileName] = @filename
+	left join gateway_u_records u on u.[RSSI-INST] = a.[RSSI-INST] and u.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and u.[FileName] = @filename
+	left join gateway_i_records i on i.[RSSI-INST] = a.[RSSI-INST] and i.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] and ltrim(rtrim(i.[rssi-cb-cbwr1-bill-stmnt])) <> 'O' --and i.[FileName] = @filename
+
+where /*and g.[FileName] = @filename*/ convert(numeric(18,0), d.[RSSI-NUM-DAYS-DELQ]) <= 45 and j.[RSSI-RCD-ID] is null   and d.[RSSI-LOSS-MIT-IND] <>'A'--AND d.[RSSI-EMAIL-BILL-IND] <> 'Y'  and d.[rssi-acct-no] like '%' + @account + '%'
+		and f.[rssi-fd-fee-desc] = 'Accrued Late Charge' 
+		and try_convert(date, (replace (f.[RSSI-FD-ASSESS-DATE], ' 1', '')), 101) > try_convert(date, d.[rssi-lip-la-date], 101) 
+		and try_convert(date, (replace (f.[RSSI-FD-ASSESS-DATE], ' 1', '')), 101) <= try_convert(date, d.[rssi-run-date], 101)
+
+union
+
+select distinct 'Z' as sortcode,
+d.[RSSI-ACCT-NO] as accountnumber,
+'' as recordtype1,
+'' as [RSSI-INST], 
+'' as  Account_Number_H,
+'' as recordtype2,
+'' as Account_Number_B,
+'' as [RSSI-INSTITUTION-NAME],
+'' as [RSSI-INST-ADRS-1],
+'' as [RSSI-INST-ADRS-2],
+'' as [RSSI-INST-CITY],
+'' as [RSSI-INST-STATE],
+'' as [RSSI-INST-ZIP],
+'' as recordtype3,
+'' as [rssi-inst],
+'' as [RSSI-N1MX-PLSS-ENTITY],
+'' as [RSSI-ENTY-NAME],
+'' as [RSSI-ENTY-ADRS-1],
+'' as [RSSI-ENTY-ADRS-2],
+'' as [RSSI-ENTY-CITY],
+'' as [RSSI-ENTY-STATE],
+'' as [RSSI-ENTY-ZIP],
+'' as recordtype4,
+'' as b3_statementdate,
+'' as c1_borrowername,
+'' as c2_secondaryname,
+'' as Mailing_Address_1,
+'' as Mailing_Address_2,
+'' as Mailing_Address_City,
+'' as Mailing_Address_State,
+'' as Mailing_Address_Zip,
+/*Summary Box*/
+z.[rssi-acct-no] as d1_accountnumber,
+'' as D2_Payment_Due_Date,
+'' as D3_Regular_Mortgage_Amount_Due,
+'' as D4_If_Payment_Received_After_Date,
+'' as D5_If_Payment_Received_After_Late_Fee_Amount,
+/*Account Information*/
+'' as E1_Property_Address_1,
+'' as E1_Property_Address_2,
+'' as E1_Property_Address_City,
+'' as E1_Property_Address_State,
+'' as E1_Property_Address_Zip,
+'' as E2_Outstanding_Principal_Balance,
+'' as E3_Interest_Rate_Until_Date,
+'' as E4_Interest_Rate,
+'' as 'PrePayment_Penalty',
+/*Explanation of Amount Due*/
+'' as [RSSI-P-I-PYMT],
+'' as [rssi-fees],
+'' as [rssi-late-chg-due],
+'' as [RSSI-CR-INS-PYMT],
+--d.[RSSI-P-I-PYMT] - d.[RSSI-INT-DUE] as Principal,
+'' as F2_Interest,
+'' as F3_Escrow,
+'' as F4_Regular_Monthly_Payment,
+--d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT] as total_fees_charged,
+'' as F6_Past_Due_Payments,
+--d.[RSSI-BILL-PMT-AMT] + (d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT]) +[RSSI-BILL-TOTAL-DUE] as Total_Amount_Due,
+/*Transaction Activity*/
+'' as G1_Transaction_Period_Begin_Date,
+'' as G2_Transaction_Period_End_Date,
+/*Transaction Amount*/
+'' as H1_Principal,
+'' as H2_Interest,
+'' as H3_Impound_Escrow,
+'' as H4_Fees,
+'' as H5_Late_Charges,
+'' as H6_Partial_Payment_Unapplied,
+'' as H7_Total,
+'' as H8_Principal_YTD,
+'' as H9_Interest_YTD,
+'' as H10_Impound_Escrow_YTD,
+'' as H11_Fees_YTD,
+'' as H12_Late_Charges_YTD,
+'' as H13_Partial_Payment_Unapplied_Total,
+--'' as --d.[rssi-prin-paid-ytd]+[RSSI-INT-PD-YTD]+[rssi-esc-paid-ytd]+[rssi-fees-paid-ytd]+[rssi-late-chg-paid-ytd]+ g.[RSSI_UNAP_BAL_TOT] as Total_YTD,
+/*Messaging*/
+'' as DL1_As_of_Date,
+'' as DL2_Day_Delinquent,
+'' as DL3_Past_Paid_Due_Date,
+'' as DL4_Past_Paid_Payment_Date_1,
+--case when d.[RSSI-PMT-PAID-DATE-1] <> '' then 'Fully paid on d.[rssi-pmt-paid-1-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_1,
+'' as DL5_Past_Paid_Payment_Due_Date_2,
+'' as DL6_Past_Paid_Payment_Paid_Date_2,
+--case when d.[RSSI-PMT-PAID-DATE-2] <> '' then 'Fully paid on d.[rssi-pmt-paid-2-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_2,
+'' as DL7_Past_Paid_Payment_Due_Date_3,
+'' as DL8_Past_Paid_Payment_Date_3,
+--case when d.[RSSI-PMT-PAID-DATE-3] <> '' then 'Fully paid on d.[rssi-pmt-paid-3-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_3,
+'' as DL9_Past_Paid_Payment_Due_Date_4,
+'' as DL10_Past_Paid_Payment_Date_4,
+--case when d.[RSSI-PMT-PAID-DATE-4] <> '' then 'Fully paid on d.[rssi-pmt-paid-4-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_4,
+'' as DL11_Past_Paid_Payment_Due_Date_5,
+'' as DL12_Past_Paid_Payment_Date_5,
+--case when d.[RSSI-PMT-PAID-DATE-5] <> '' then 'Fully paid on d.[rssi-pmt-paid-5-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_5,
+'' as DL13_Past_Paid_Payment_Due_Date_6,
+'' as DL14_Past_Paid_Payment_Date_6,
+--case when d.[RSSI-PMT-PAID-DATE-6] <> '' then 'Fully paid on d.[rssi-pmt-paid-6-date]' else d.[rssi-reg-amt-1] end as Past_Paid_Payment_Date_6,
+'' as DL15_Current_Payment_Due_Date,
+'' as DL16_Current_Payment_Amount_Due,
+--d.[RSSI-BILL-PMT-AMT] + (d.[RSSI-FEES] + [rssi-late-chg-due] + [RSSI-CR-INS-PYMT]) + d.[RSSI-BILL-TOTAL-DUE] as Total_Amount_To_Bring_Current,
+'' as K4_Account_Number,
+'' as K5_Payment_Due_Date,
+'' as K6_Regular_Mortgage_Amount_Due,
+'' as K7_Late_Fee_Amount,
+'' as K8_Late_Fee_Date,
+'' as K9_ACH_Draft_Date,
+'' as [rssi-rcd-id],
+'' as [rssi-b-chap],
+'' as [RSSI-NUM-DAYS-DELQ],
+'' as [RSSI-LMT-PROGRAM],
+'' as  lmtprogramdescription,
+'' as [RSSI-EMAIL-BILL-IND],
+'' as [RSSI-LCI-FREEZE-TO-DT], --use for conditional on showing suspend late fee language
+'' as [rssi-lci-freeze-from-dt],
+'' as [RSSI-RCD-ID],
+'' as trfeecode,
+'' as transactioncode,
+'' as g3_transaction_date,
+'' as [RSSI-TR-AMT],
+'' as [rssi-tr-amt-to-prin],
+'' as [rssi-tr-amt-to-int],
+'' as [rssi-tr-amt-to-esc],
+'' as [rssi-tr-amt-to-lc],
+'' as [rssi-tr-amt-to-pvar],
+'' as [rssi-tr-amt-to-ivar],
+'' as [rssi-tr-amt-to-evar],
+'' as [rssi-tr-amt-to-lvar],
+'' as [RSSI-TR-FEE-DESC],
+'' as [chargedescription],
+'' as [paymentdescription],
+'' as [RSSI-RCD-ID],
+'' as [RSSI-FD-ASSESS-AMT],
+'' as [RSSI-FD-FEE-DESC],
+'' as g3_fee_assess_date,
+'' as g3_fee_coll_date,
+'' as agency,
+'' as phonenumber,
+'' as nmlsnumber,
+'' as achindicator,
+--NEW Due Date Logic as of 2/19/2019 - If RSSI-DUE-DATE > RSSI-CUR-DUE-DTE Set Amount Due to $0.00
+'' as rssiduedatecheck,
+'' as rssicurduedatecheck,
+'' as newamountdue,
+'' as newrssipipymt,
+'' as newrssiintdue,
+'' as newrssiescpymt,
+'' as newrssibillpmtamt,
+'' as newrssifees,
+'' as newrssilatechgdue,
+'' as newrssicrinspymnt,
+'' as newrssibilltotaldue,
+'' as newintratechange,
+'' as rssimatdate,
+'' as interestrateuntildate,
+'' as NEW_F6_Past_Due_Payments,
+'' as coborrowerrec,
+'' as coborrowerverified,
+'' as coborrowerbillstmnt,
+'' as coborrowername,
+'' as coborroweraddr1,
+'' as coborroweraddr2,
+'' as coborrowercity,
+'' as coborrowerstate,
+'' as coborrowerzip,
+'' as maturitydateyears,
+'' as suspendlatefeelanguage,
+'' as [RSSI-UNCOLL-ESC-SHORT],
+'' as [RSSI-AUDIT-DATE],
+'' as tax_insert,
+'' as onsertindicator,
+'' as 'SEQ-NO'
+
+from  Gateway_Header_Records a
+	join Gateway_B_Records b on b.[RSSI-INST] = a.[RSSI-INST] --and b.[FileName] = @filename
+	join Gateway_P_Records c on c.[RSSI-INST] = a.[RSSI-INST] --and c.[FileName] = @filename
+	join Gateway_A_records d on d.[RSSI-INST] = a.[RSSI-INST] --and d.[FileName] = @filename
+	join gateway_Z_Records z on z.[RSSI-INST] = a.[RSSI-INST] --and z.[FileName] = @filename
+	left join gateway_t_records e on e.[RSSI-INST] = a.[RSSI-INST] and e.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] and 
+		ltrim(rtrim(e.[rssi-log-tran])) in  ('5620', '5700', '5710', '5730', '5741', '5742', '5745', '5750', '5760', '5761', '5770', '5771', '5775', '5776', '5850') AND e.[RSSI-LOG-PTRN] NOT IN ('PFSP1069','PFSP1169','PFSP1269','PFSP1369','PFSP4540','PFSP4549','PFSP524','PFSP539','PFSP578','PFSP478X') /*and e.[FileName] = @filename*/
+	--left join gateway_f_records f on f.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and f.[RSSI-SEQ-NO] = e.[RSSI-SEQ-NO]
+	--join Mortgage_TandF_Reference x on ltrim(rtrim(x.[rssi-log-tran])) = ltrim(rtrim(e.[RSSI-LOG-TRAN])) 
+	left join Gateway_2_records g on g.[RSSI-INST] = a.[RSSI-INST] and g.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and g.[FileName] = @filename
+	left join Gateway_J_Records j on j.[rssi-inst] = a.[rssi-inst] and j.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and j.[FileName] = @filename
+	left join gateway_x_records k on k.[rssi-inst] = a.[rssi-inst] and k.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and k.[FileName] = @filename
+	left join gateway_u_records u on u.[RSSI-INST] = a.[RSSI-INST] and u.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] --and u.[FileName] = @filename
+	left join gateway_i_records i on i.[RSSI-INST] = a.[RSSI-INST] and i.[RSSI-ACCT-NO] = d.[RSSI-ACCT-NO] and ltrim(rtrim(i.[rssi-cb-cbwr1-bill-stmnt])) <> 'O' --and i.[FileName] = @filename
+
+where /*and g.[FileName] = @filename*/ convert(numeric(18,0), d.[RSSI-NUM-DAYS-DELQ]) <= 45 and j.[RSSI-RCD-ID] is null  and d.[RSSI-LOSS-MIT-IND] <>'A' --AND d.[RSSI-EMAIL-BILL-IND] <> 'Y'  and d.[rssi-acct-no] like '%' + @account + '%'
+
+
+order by accountnumber, sortcode, g3_transaction_date, [RSSI-EMAIL-BILL-IND]
